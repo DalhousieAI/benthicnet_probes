@@ -1,0 +1,79 @@
+{
+  "backbone": {
+    "name": "resnet50",
+    "weights": null,
+    "grad": false
+  },
+  "heads": {
+    "biota": {
+      "name": "biota",
+      "type": "HML",
+      "hidden_dim": [
+        2048
+      ],
+      "dropout": 0.7,
+      "non_lin": "relu"
+    },
+    "substrate": {
+      "name": "substrate",
+      "type": "HML",
+      "hidden_dim": [
+        2048
+      ],
+      "dropout": 0.7,
+      "non_lin": "relu"
+    },
+    "relief": {
+      "name": "relief",
+      "type": "HML",
+      "hidden_dim": [
+        2048
+      ],
+      "dropout": 0.7,
+      "non_lin": "relu"
+    },
+    "bedforms": {
+      "name": "bedforms",
+      "type": "HML",
+      "hidden_dim": [
+        2048
+      ],
+      "dropout": 0.7,
+      "non_lin": "relu"
+    },
+    "colour": {
+      "name": "colour",
+      "type": "ML",
+      "hidden_dim": [
+        2048
+      ],
+      "dropout": 0.7,
+      "non_lin": "relu",
+      "num_classes": 14
+    }
+  },
+  "max_epochs": 100,
+  "backbone_params": {
+    "zero_init_residual": true
+  },
+  "optimizer": {
+    "name": "adamw",
+    "lr": 0.005,
+    "weight_decay": 1e-05,
+    "extra_optimizer_args": {
+      "betas": [
+        0.9,
+        0.999
+      ]
+    }
+  },
+  "scheduler": {
+    "name": "warmup_cosine",
+    "interval": "epoch",
+    "warmup_epochs": 10,
+    "warmup_start_lr": 1e-05,
+    "min_lr": 1e-05
+  },
+  "batch_size": 128,
+  "num_workers": 8
+}
