@@ -30,7 +30,7 @@ def main():
     set_seed(args.seed)
 
     # Set up environment variables
-    os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+    os.environ["CUDA_LAUNCH_BLOCKING"] = "0"
     if args.windows:
         os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "gloo"
 
@@ -105,6 +105,7 @@ def main():
     trainer_args = Namespace(**train_kwargs)
 
     if args.test_mode:
+        del train_dataloader, val_dataloader
         trainer = Trainer.from_argparse_args(
             trainer_args,
             logger=csv_logger,
@@ -114,10 +115,12 @@ def main():
             num_nodes=1,
             devices=[0],
             log_every_n_steps=log_every_n_steps,
+            precision=16,
         )
 
         trainer.test(model, dataloaders=test_dataloader)
     else:
+        del test_dataloader
         trainer = Trainer.from_argparse_args(
             trainer_args,
             logger=csv_logger,
@@ -127,6 +130,7 @@ def main():
             num_nodes=args.nodes,
             devices=args.gpus,
             log_every_n_steps=log_every_n_steps,
+            precision=16,
         )
 
         trainer.fit(model, train_dataloader, val_dataloaders=val_dataloader)

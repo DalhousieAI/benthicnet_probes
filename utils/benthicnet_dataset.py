@@ -89,8 +89,7 @@ class BenthicNetDataset(torch.utils.data.Dataset):
         if self.transform:
             sample = self.transform(sample)
 
-        return (
-            sample,
+        return sample, (
             row["CATAMI Biota"],
             row["CATAMI Substrate"],
             row["CATAMI Relief"],

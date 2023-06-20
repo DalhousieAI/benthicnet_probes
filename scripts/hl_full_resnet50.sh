@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=00-12:00:00          # max walltime, hh:mm:ss
+#SBATCH --time=03-00:00:00          # max walltime, hh:mm:ss
 #SBATCH --nodes 1                   # Number of nodes to request
 #SBATCH --gpus-per-node=v100l:4     # Number of GPUs per node to request
 #SBATCH --tasks-per-node=4          # Number of processes to spawn per node
