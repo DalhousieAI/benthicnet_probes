@@ -173,8 +173,8 @@ def gen_R_mat(G):
         descendants = list(nx.descendants(G, i))
         if descendants:
             R[i, descendants] = 1
-    R = torch.tensor(R)
-    R = R.unsqueeze(0).to("cuda")
+    R = torch.from_numpy(R)
+    R = R.unsqueeze(0)
     return R
 
 
@@ -227,13 +227,13 @@ def parse_heads_and_masks(sample_row, Rs):
         if isinstance(raw_indices, str) and len(raw_indices) > 0:
             indices = np.array(ast.literal_eval(raw_indices))
             if "mask" in header:
-                lab_array = torch.ones(len(Rs[root][0]))
+                lab_array = torch.ones(len(Rs[root][0]), dtype=torch.half)
                 lab_array[indices] = 0
             else:
                 if non_hierarchical_head:
-                    lab_array = torch.zeros(Rs[root])
+                    lab_array = torch.zeros(Rs[root], dtype=torch.half)
                 else:
-                    lab_array = torch.zeros(len(Rs[root][0]))
+                    lab_array = torch.zeros(len(Rs[root][0]), dtype=torch.half)
                 lab_array[indices] = 1
         else:
             if non_hierarchical_head:
