@@ -88,6 +88,7 @@ def main():
         monitor="val_loss",
         mode="min",
         every_n_epochs=train_kwargs.max_epochs,
+        save_weights_only=False,
     )
 
     # Determine logging rate
@@ -115,7 +116,7 @@ def main():
             num_nodes=1,
             devices=[0],
             log_every_n_steps=log_every_n_steps,
-            precision=16,
+            enable_progress_bar=False,
         )
 
         trainer.test(model, dataloaders=test_dataloader)
@@ -130,7 +131,7 @@ def main():
             num_nodes=args.nodes,
             devices=args.gpus,
             log_every_n_steps=log_every_n_steps,
-            precision=16,
+            enable_progress_bar=True,
         )
 
         trainer.fit(model, train_dataloader, val_dataloaders=val_dataloader)

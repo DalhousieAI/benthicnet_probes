@@ -34,17 +34,19 @@ _SAMPLE_HEAD_DICT = {
 def weighted_mean(metric_dict, metric_key, batch_size_key):
     original_metric_array = np.array(metric_dict[metric_key])
     original_batch_size_array = np.array(metric_dict[batch_size_key])
-    non_nan_indices = np.where(~np.isnan(original_metric_array))[0]
-    if len(non_nan_indices) == 0:
-        return np.nan
+    existing_metric_indices = np.where(original_metric_array != -1)[0]
 
-    nan_less_metric_array = original_metric_array[non_nan_indices]
-    nan_less_batch_size_array = original_batch_size_array[non_nan_indices]
+    existing_metric_array = original_metric_array[existing_metric_indices]
+    existing_batch_size_array = original_batch_size_array[existing_metric_indices]
 
-    norm_batch_size_weights = nan_less_batch_size_array / np.sum(
-        nan_less_batch_size_array
+    total_batch_size = np.sum(existing_batch_size_array)
+    if total_batch_size == 0:
+        return -1.0
+
+    norm_batch_size_weights = existing_batch_size_array / np.sum(
+        existing_batch_size_array
     )
-    return np.average(nan_less_metric_array, weights=norm_batch_size_weights)
+    return np.average(existing_metric_array, weights=norm_batch_size_weights)
 
 
 # Drop certain keys in dictionary
@@ -72,13 +74,18 @@ def update_epoch_metrics_dict(original_dict, new_dict):
 def mcloss(logits, targets, R, masks):
     # MCLoss - why doubles?
     constr_output = get_constr_out(logits, R)
-    output = targets * logits
+    output = targets * logits.double()
     output = get_constr_out(output, R)
-    output = (1 - targets) * constr_output + targets * output
+    output = (1 - targets) * constr_output.double() + targets * output
     loss = F.binary_cross_entropy_with_logits(output, targets, reduction="none")
 
+    valid_logit_count = torch.sum(masks == 1, dim=1)
+
+    nonzero_mask = valid_logit_count != 0
     # Average across labels first
-    loss = torch.mean(loss * masks, 1)
+    loss = torch.sum(loss * masks, dim=1)
+    loss[nonzero_mask] /= valid_logit_count[nonzero_mask]
+
     return loss
 
 
@@ -93,9 +100,9 @@ def ml_metrics(targets, predicted, prefix):
         ap_score = average_precision_score(targets, predicted, average="micro")
         f1 = f1_score(targets, predicted, average="micro", zero_division=0)
     else:
-        acc = np.nan
-        ap_score = np.nan
-        f1 = np.nan
+        acc = -1.0
+        ap_score = -1.0
+        f1 = -1.0
 
     scores_dict = {
         prefix + "_acc": [acc],
@@ -130,93 +137,80 @@ class LinearProbe(pl.LightningModule):
         return logits
 
     # Parse targets for predictions
-    def process_targets_for_nans_drop_labels(self, outputs, targets):
-        non_nan_indices = (
-            torch.logical_not(torch.isnan(targets).any(dim=1))
+    def process_targets_for_empty_labels(self, outputs, targets):
+        existing_indices = (
+            torch.logical_not(torch.all(targets == 0, dim=1))
             .nonzero(as_tuple=False)
             .squeeze()
         )
 
-        outputs = torch.index_select(outputs, 0, non_nan_indices)
-        targets = torch.index_select(targets, 0, non_nan_indices)
+        outputs = torch.index_select(outputs, 0, existing_indices)
+        targets = torch.index_select(targets, 0, existing_indices)
 
         return outputs, targets
 
-    # Parse targets for training
-    def process_targets_for_nans_keep_labels(self, outputs, targets, masks=None):
-        nan_indices = torch.isnan(targets).any(dim=1).nonzero(as_tuple=False).squeeze()
-
-        targets[nan_indices] = torch.zeros_like(
-            targets[nan_indices], device=self.device
+    # Produce mask for training (give locations of targets which are empty)
+    def get_missing_mask(self, targets):
+        missing_target_indices = (
+            torch.all(targets == 0, dim=1).nonzero(as_tuple=False).squeeze()
         )
 
-        nan_mask = torch.ones(len(targets), device=self.device)
-        nan_mask[nan_indices] = 0
+        missing_mask = torch.ones(len(targets), device=self.device)
+        missing_mask[missing_target_indices] = 0
 
-        if masks is not None:
-            masks[nan_indices] = torch.zeros_like(
-                masks[nan_indices], device=self.device
-            )
-            return outputs, targets, masks, nan_mask
-
-        return outputs, targets, nan_mask
+        return missing_mask
 
     def shared_step(self, batch, batch_idx, partition_prefix):
         inputs, data = batch
         head_losses = 0
-        num_non_zero_head_losses = 0
         out = self(inputs)
+        num_valid_head_losses = 0
         for head in self.heads:
             head_net = self.heads[head]
             original_outputs = out[head]
             original_targets = data[_SAMPLE_HEAD_DICT[head]].to(
                 self.device
-            )  # targets is in a batch, some samples of which are empty
-            outputs_pred, targets_pred = self.process_targets_for_nans_drop_labels(
+            )  # targets is in a batch, some samples of which are empty (full of zeros)
+
+            # The missing mask is a sanity check for the empty samples for CFFNN heads
+            # It is also necessary for colour heads, which do not have a mask
+            # This mask is applied at the "head loss" level
+            missing_mask = self.get_missing_mask(original_targets)
+            outputs_pred, targets_pred = self.process_targets_for_empty_labels(
                 original_outputs, original_targets
             )
+
             if isinstance(head_net, ConstrainedFFNNModel):
                 local_R = self.Rs[head].to(self.device)
+                # This is the sample mask, which is applied at the "sample loss" level
                 masks = data[_SAMPLE_HEAD_DICT[head + "_mask"]].to(self.device)
-                (
-                    outputs_train,
-                    targets_train,
-                    masks_train,
-                    nan_mask,
-                ) = self.process_targets_for_nans_keep_labels(
-                    original_outputs, original_targets, masks
-                )
                 head_loss_samples = mcloss(
-                    outputs_train, targets_train, local_R, masks_train
+                    original_outputs, original_targets, local_R, masks
                 )
 
                 outputs_pred = get_constr_out(outputs_pred, local_R)
             elif isinstance(head_net, MultiLabelFFNNModel):
-                (
-                    outputs_train,
-                    targets_train,
-                    nan_mask,
-                ) = self.process_targets_for_nans_keep_labels(
-                    original_outputs, original_targets
-                )
                 head_loss_raw = F.binary_cross_entropy_with_logits(
-                    outputs_train, targets_train, reduction="none"
+                    original_outputs, original_targets, reduction="none"
                 )
                 head_loss_samples = torch.mean(head_loss_raw, 1)
             else:
                 raise ValueError("Head network type not recognized")
 
-            del original_outputs, original_targets, outputs_train, targets_train
-
-            head_loss = torch.mean(head_loss_samples * nan_mask)
-            head_losses += head_loss
-            if head_loss != 0:
-                num_non_zero_head_losses += 1
-
-            del head_loss_samples, nan_mask
-
-            # We denote effective batch size as the number of samples that are not nan
+            # Think of this part as applying mask at the "batch loss" level
+            # We are "zeroing out" the loss for heads which received no samples this batch
             effective_head_batch_size = len(targets_pred)
+            if effective_head_batch_size > 0:
+                head_loss = (
+                    torch.sum(head_loss_samples * missing_mask)
+                    / effective_head_batch_size
+                )
+                num_valid_head_losses += 1
+            else:
+                # If all samples for this head are empty,
+                # we do not include it in the average batch loss across heads
+                head_loss = torch.sum(head_loss_samples) * 0
+            head_losses += head_loss
 
             sigmoid = nn.Sigmoid()
             predicted = sigmoid(outputs_pred) > 0.5
@@ -224,28 +218,24 @@ class LinearProbe(pl.LightningModule):
 
             batch_metrics_dict = ml_metrics(targets_pred, predicted, prefix)
 
-            del outputs_pred, targets_pred, predicted
-
             self.epoch_metrics_dict = update_epoch_metrics_dict(
                 self.epoch_metrics_dict, batch_metrics_dict
             )
             self.epoch_metrics_dict = update_epoch_metrics_dict(
                 self.epoch_metrics_dict, {f"{prefix}_loss": [head_loss.detach().cpu()]}
             )
-            del head_loss
 
             self.epoch_metrics_dict = update_epoch_metrics_dict(
                 self.epoch_metrics_dict,
                 {f"{prefix}_batch_size": [effective_head_batch_size]},
             )
-
-        batch_loss = head_losses / num_non_zero_head_losses
+        head_losses = head_losses / num_valid_head_losses
 
         self.epoch_metrics_dict = update_epoch_metrics_dict(
             self.epoch_metrics_dict,
-            {f"{partition_prefix}_loss": [batch_loss.detach().cpu()]},
+            {f"{partition_prefix}_loss": [head_losses.detach().cpu()]},
         )
-        return batch_loss
+        return head_losses
 
     def shared_epoch_end(self, partition_prefix):
         epoch_loss = np.average(self.epoch_metrics_dict[f"{partition_prefix}_loss"])
@@ -260,11 +250,15 @@ class LinearProbe(pl.LightningModule):
             epoch_head_f1_score = weighted_mean(
                 self.epoch_metrics_dict, f"{prefix}_f1_score", f"{prefix}_batch_size"
             )
+            epoch_head_loss = weighted_mean(
+                self.epoch_metrics_dict, f"{prefix}_loss", f"{prefix}_batch_size"
+            )
 
             head_log = {
                 f"{prefix}_acc": epoch_head_acc,
                 f"{prefix}_ap_score": epoch_head_ap_score,
                 f"{prefix}_f1_score": epoch_head_f1_score,
+                f"{prefix}_loss": epoch_head_loss,
             }
             self.log_dict(head_log, sync_dist=True)
         return epoch_loss
