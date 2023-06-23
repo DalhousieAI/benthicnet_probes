@@ -9,7 +9,7 @@
       "name": "biota",
       "type": "HML",
       "hidden_dim": [
-        1024
+        2048
       ],
       "dropout": 0.7,
       "non_lin": "relu"
@@ -18,7 +18,7 @@
       "name": "substrate",
       "type": "HML",
       "hidden_dim": [
-        1024
+        2048
       ],
       "dropout": 0.7,
       "non_lin": "relu"
@@ -27,7 +27,7 @@
       "name": "relief",
       "type": "HML",
       "hidden_dim": [
-        1024
+        2048
       ],
       "dropout": 0.7,
       "non_lin": "relu"
@@ -36,7 +36,7 @@
       "name": "bedforms",
       "type": "HML",
       "hidden_dim": [
-        1024
+        2048
       ],
       "dropout": 0.7,
       "non_lin": "relu"
@@ -45,14 +45,14 @@
       "name": "colour",
       "type": "ML",
       "hidden_dim": [
-        1024
+        2048
       ],
       "dropout": 0.7,
       "non_lin": "relu",
       "num_classes": 14
     }
   },
-  "max_epochs": 50,
+  "max_epochs": 100,
   "backbone_params": {
     "zero_init_residual": true
   },
@@ -75,5 +75,5 @@
     "min_lr": 1e-05
   },
   "batch_size": 128,
-  "num_workers": 1
+  "num_workers": 4
 }

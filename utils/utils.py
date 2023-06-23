@@ -13,7 +13,6 @@ from networkx import relabel_nodes
 from omegaconf import OmegaConf
 from PIL import Image
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
-from solo.utils.lars import LARS
 from torch.optim.lr_scheduler import (
     ExponentialLR,
     MultiStepLR,
@@ -53,7 +52,6 @@ _HEADER_ROOT_DICT = {
 
 _OPTIMIZERS = {
     "sgd": torch.optim.SGD,
-    "lars": LARS,
     "adam": torch.optim.Adam,
     "adamw": torch.optim.AdamW,
 }
@@ -91,7 +89,7 @@ def parser():
     parser.add_argument(
         "--tar_dir",
         type=str,
-        default="/project/def-ttt/become/benthicnet-compiled/compiled_labelled_512px/tar/",
+        default="/gpfs/project/6012565/become_labelled/compiled_labelled_512px/tar",
         help="set directory for training tar file",
     )
     parser.add_argument(
@@ -226,20 +224,20 @@ def parse_heads_and_masks(sample_row, Rs):
         non_hierarchical_head = isinstance(Rs[root], int)
         if isinstance(raw_indices, str) and len(raw_indices) > 0:
             indices = np.array(ast.literal_eval(raw_indices))
-            if "mask" in header:
-                lab_array = torch.ones(len(Rs[root][0]), dtype=torch.half)
+            if "Mask" in header:
+                lab_array = torch.ones(len(Rs[root][0]))
                 lab_array[indices] = 0
             else:
                 if non_hierarchical_head:
-                    lab_array = torch.zeros(Rs[root], dtype=torch.half)
+                    lab_array = torch.zeros(Rs[root])
                 else:
-                    lab_array = torch.zeros(len(Rs[root][0]), dtype=torch.half)
+                    lab_array = torch.zeros(len(Rs[root][0]))
                 lab_array[indices] = 1
         else:
             if non_hierarchical_head:
-                lab_array = torch.full((Rs[root],), float("nan"))
+                lab_array = torch.zeros(Rs[root])
             else:
-                lab_array = torch.full((len(Rs[root][0]),), float("nan"))
+                lab_array = torch.zeros(len(Rs[root][0]))
         sample_row[header] = lab_array
     return sample_row
 
