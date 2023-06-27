@@ -79,16 +79,18 @@ def main():
 
     # Set up callbacks
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    directory_path = os.path.join("checkpoints", timestamp)
+
     csv_logger = CSVLogger("logs", name=args.name + "_logs", version=timestamp)
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath="checkpoints",
+        dirpath=directory_path,
         filename="checkpoint_{epoch:02d}-{val_loss:.4f}",
         save_top_k=1,
         monitor="val_loss",
         mode="min",
         every_n_epochs=train_kwargs.max_epochs,
-        save_weights_only=False,
+        save_weights_only=True,
     )
 
     # Determine logging rate

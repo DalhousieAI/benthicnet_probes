@@ -58,7 +58,7 @@
   },
   "optimizer": {
     "name": "adamw",
-    "lr": 0.005,
+    "lr": 0.0001,
     "weight_decay": 1e-05,
     "extra_optimizer_args": {
       "betas": [
@@ -71,8 +71,8 @@
     "name": "warmup_cosine",
     "interval": "epoch",
     "warmup_epochs": 10,
-    "warmup_start_lr": 1e-05,
-    "min_lr": 1e-05
+    "warmup_start_lr": 1e-06,
+    "min_lr": 1e-06
   },
   "batch_size": 128,
   "num_workers": 4
