@@ -1,15 +1,15 @@
 #!/bin/bash
-#SBATCH --time=01-00:00:00          # max walltime, hh:mm:ss
+#SBATCH --time=00-01:00:00          # max walltime, hh:mm:ss
 #SBATCH --nodes 1                   # Number of nodes to request
-#SBATCH --gpus-per-node=a100:4      # Number of GPUs per node to request
-#SBATCH --tasks-per-node=4          # Number of processes to spawn per node
+#SBATCH --gpus-per-node=a100:1      # Number of GPUs per node to request
+#SBATCH --tasks-per-node=1          # Number of processes to spawn per node
 #SBATCH --cpus-per-task=12          # Number of CPUs per GPU
-#SBATCH --mem=498G                  # Memory per node
+#SBATCH --mem=256G                  # Memory per node
 #SBATCH --output=../logs/%x_%A-%a_%n-%t.out
 #SBATCH --job-name=hl_full_resnet50
 #SBATCH --account=def-ttt			      # Use default account
 
-GPUS_PER_NODE=4
+GPUS_PER_NODE=1
 
 # Exit if any command hits an error
 set -e
@@ -35,7 +35,9 @@ source "../slurm/copy_and_extract_data.sh"
 
 srun python ../main.py \
     --train_cfg "../cfgs/cnn/resnet50_hl.json" \
+    --enc_pth "../pretrained_encoders/hl_full_rn50_lr-1e-3.ckpt" \
     --csv "../data_csv/size_full_benthicnet.csv" \
     --nodes "$SLURM_JOB_NUM_NODES" \
     --gpus "$GPUS_PER_NODE" \
-    --name "hl_full_resnet50"
+    --test_mode true \
+    --name "hl_full_resnet50_test"

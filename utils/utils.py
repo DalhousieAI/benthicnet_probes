@@ -445,14 +445,6 @@ def construct_head(input_dim, hidden_dim, dropout, type, non_lin, R):
 
 
 def process_scheduler(train_kwargs, optimizer, lr):
-    # _SCHEDULERS = {
-    #     "reduce",
-    #     "warmup_cosine",
-    #     "step",
-    #     "exponential"
-    #     "none"
-    # }
-
     scheduler_name = train_kwargs.scheduler.name
 
     if scheduler_name not in _SCHEDULERS:
