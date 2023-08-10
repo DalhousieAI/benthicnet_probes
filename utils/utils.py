@@ -72,7 +72,9 @@ _BACKBONES = {
 
 # 1. Base utility functions
 def parser():
-    parser = argparse.ArgumentParser(description="Parameters for complexity project")
+    parser = argparse.ArgumentParser(
+        description="Parameters for benthicnet probe project"
+    )
     # Required parameters
     parser.add_argument(
         "--train_cfg",
@@ -120,7 +122,7 @@ def parser():
     parser.add_argument(
         "--random_partition",
         type=bool,
-        default=True,
+        default=False,
         help="bool flag to randomly partition data (default: True)",
     )
     parser.add_argument(
@@ -408,17 +410,43 @@ def construct_dataloaders(datasets, train_kwargs):
 # 5. Building the model
 def load_model_state(model, ckpt_path, origin=None, component="encoder"):
     # key = 'state_dict' for pre-trained models, 'model' for FB Imagenet
+    alt_component_names = {
+        "encoder": "backbone",
+    }
+    alt_component_name = alt_component_names.get(component, "")
+
     loaded_dict = torch.load(ckpt_path)
+
     if origin == "fb":
         key = "model"
     else:
         key = "state_dict"
+
     state = loaded_dict[key]
+    loading_state = {}
+
+    model_keys = model.state_dict().keys()
+
     for k in list(state.keys()):
-        if component in k:
-            state[k.replace("{}.".format(component), "")] = state[k]
-        del state[k]
-    model.load_state_dict(state, strict=False)
+        k_split = k.split(".")
+        k_0 = k_split[0]
+        if len(k_split) > 1:
+            k_1 = k_split[1]
+        else:
+            k_1 = ""
+
+        k_heads = ".".join([k_0, k_1])
+        if k_0 == component or k_heads == component:
+            k_to_check = k.replace(f"{component}.", "")
+        elif k_0 == alt_component_name or k_heads == alt_component_name:
+            k_to_check = k.replace(f"{alt_component_name}.", "")
+        else:
+            k_to_check = k
+
+        if k_to_check in model_keys:
+            loading_state[k_to_check] = state[k]
+
+    model.load_state_dict(loading_state, strict=False)
     print(f"Loaded {component} from {ckpt_path}.")
 
     return model
@@ -498,7 +526,9 @@ def print_model_layers(model):
         print(name, module)
 
 
-def construct_model(train_kwargs, Rs, enc_pth=None, test_mode=False):
+def construct_model(
+    train_kwargs, Rs, enc_pth=None, test_mode=False, fine_tune_mode=False
+):
     # Prepare encoder - Note (for json): use "IMAGENET1K_V1" for ImageNet weights, null for None
     backbone = train_kwargs.backbone
     backbone_name = backbone.name
@@ -539,9 +569,11 @@ def construct_model(train_kwargs, Rs, enc_pth=None, test_mode=False):
             non_lin=head_obj.non_lin,
             R=R,
         )
-        component = "heads.{}".format(head)
-        if test_mode:
-            load_model_state(heads[head], enc_pth, origin=origin, component=component)
+        component = f"heads.{head}"
+        if test_mode or fine_tune_mode:
+            heads[head] = load_model_state(
+                heads[head], enc_pth, origin=origin, component=component
+            )
 
     # Combine parameters of encoder and heads
     encoder_params = enc.parameters()

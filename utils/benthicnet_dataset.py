@@ -34,9 +34,8 @@ class BenthicNetDataset(torch.utils.data.Dataset):
             Optional transform to be applied on a sample.
         """
         self.tar_dir = tar_dir
-        self.dataframe = annotations
-        # self.dataframe = self.dataframe.head(64)
-        self.dataframe["tarname"] = self.dataframe["dataset"] + ".tar"
+        self.dataframe = annotations.copy()
+        self.dataframe.loc[:, "tarname"] = self.dataframe.loc[:, "dataset"] + ".tar"
         self.transform = transform
 
     def __len__(self):
@@ -44,9 +43,8 @@ class BenthicNetDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         row = self.dataframe.iloc[idx]
-        # start_time = time.time()
 
-        split_img_name = row2basename(row, use_url_extension=False).split(".")
+        split_img_name = row2basename(row, use_url_extension=True).split(".")
 
         if len(split_img_name) > 1:
             img_name = ".".join(split_img_name[:-1]) + ".jpg"
@@ -83,82 +81,29 @@ def random_partition_df(df, val_size, test_size, seed):
     return df_train, df_val, df_test
 
 
-def gen_datasets(df, tar_dir, transform, val_size=0.25, test_size=0.2, seed=0):
-    df_train, df_val, df_test = random_partition_df(
-        df, val_size=val_size, test_size=test_size, seed=seed
-    )
+def gen_datasets(
+    df, tar_dir, transform, random_partition, val_size=0.25, test_size=0.2, seed=0
+):
+    if random_partition:
+        df_train, df_val, df_test = random_partition_df(
+            df, val_size=val_size, test_size=test_size, seed=seed
+        )
+    else:
+        df_train = df[df["partition"] == "train"]
+        df_test = df[df["partition"] == "test"]
+
+        # To ensure 60% of data is in training
+        # Here, test_size is expected test size,
+        # which may have been violated by geo-spatial partitioning
+        val_percent = (0.4 - len(df_test) / len(df)) / (1 - test_size)
+
+        assert val_percent > 0, "Test size is too large for the given dataset."
+        df_train, df_val = train_test_split(
+            df_train, test_size=val_percent, random_state=seed
+        )
 
     train_dataset = BenthicNetDataset(tar_dir, df_train, transform=transform[0])
     val_dataset = BenthicNetDataset(tar_dir, df_val, transform=transform[1])
     test_dataset = BenthicNetDataset(tar_dir, df_test, transform=transform[1])
 
     return train_dataset, val_dataset, test_dataset
-
-
-# Deprecated functions
-
-# def gen_random_partition(data, size, replace):
-#     secondary_idxs = np.random.choice(np.arange(len(data)), round(len(data)*size), replace=replace)
-#     secondary_data = data[data['index'].isin(secondary_idxs)]
-#     data = data[~data['index'].isin(secondary_idxs)]
-
-#     return data, secondary_data
-
-# def ds_by_stations_lite(file, validation_size=0.25, test_size=0.2, replace=False):
-#     dataset = pd.read_csv(file, low_memory=False)
-#     dataset = dataset.drop_duplicates()
-#     dataset = dataset[dataset["dst"]!='nrcan']
-#     #dataset = dataset[dataset["dst"]!='Chesterfield']
-#     #dataset = dataset[dataset["dst"]!='Wager']
-#     dataset.dropna(how='all', inplace=True)
-#     dataset.dropna(subset=['label'], inplace=True)
-
-#     dataset['index'] = dataset.index
-#     test_loc_data = dataset[dataset["partition"].isin(["test"])]
-#     training_data = dataset[dataset["partition"].isin(["train"])]
-
-#     # Test subset has to be removed prior to partitioning validation
-#     training_data, test_r_data = gen_random_partition(training_data, test_size, replace)
-#     training_data, validation_data = gen_random_partition(training_data, validation_size, replace)
-
-#     return training_data, validation_data, test_r_data, test_loc_data
-
-# def ds_by_stations_full(
-#     file,
-#     class_graph,
-#     class_dict,
-#     R,
-#     validation_size=0.25,
-#     test_size=0.2,
-#     replace=False,
-#     missing_images=[
-#         "16_DSCN3879",
-#         "16_DSCN3880",
-#         "22_DSCN3248",
-#         "055_4_IMG0131"
-#         ]
-#     ):
-#     training_data = pd.read_csv(file, low_memory=False)
-#     training_data = training_data.drop_duplicates()
-#     training_data = training_data[training_data["dataset"]!="pangaea-b"]
-#     training_data = training_data[training_data["dataset"]!="pangaea-897047"]
-#     training_data = training_data[training_data["image"].str.contains("nrcan-2013", regex=False)==False]
-#     training_data = training_data[training_data["image"].str.contains("(1)", regex=False)==False]
-#     for img in missing_images:
-#         training_data = training_data[training_data["image"].str.contains(img, regex=False)==False]
-
-#     training_data.dropna(how='all', subset=["CATAMI Substrate"], inplace=True)
-
-#     training_data['index'] = training_data.index
-
-#     labels, masks = parse_labels(df=training_data, class_graph=class_graph, class_dict=class_dict, R=R)
-#     training_data['label_id'] = labels
-#     training_data["mask"] = masks
-
-#     test_loc_data = training_data[training_data["partition"].isin(["test"])]
-#     training_data = training_data[training_data["partition"].isin(["train"])]
-
-#     training_data, test_r_data = gen_random_partition(training_data, test_size, replace)
-#     training_data, validation_data = gen_random_partition(training_data, validation_size, replace)
-
-#     return training_data, validation_data, test_r_data, test_loc_data

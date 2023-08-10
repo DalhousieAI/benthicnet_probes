@@ -23,7 +23,8 @@ from utils.utils import (
 )
 
 
-# train_cfg, nodes, gpus, tar_dir, csv, colour_jitter, enc, graph_pth, seed, random_partition, name, windows
+# args: train_cfg, nodes, gpus, tar_dir, csv, colour_jitter, enc,
+# graph_pth, seed, random_partition, name, windows
 def main():
     # Prepare argument parameters
     args = parser()
@@ -57,19 +58,12 @@ def main():
     transform = [train_transform, val_transform]
 
     train_dataset, val_dataset, test_dataset = gen_datasets(
-        data_df, args.tar_dir, transform, seed=args.seed
+        data_df, args.tar_dir, transform, args.random_partition, seed=args.seed
     )
 
-    del data_df  # Save memory after using data_df
-
-    if args.random_partition:
-        dataloaders = construct_dataloaders(
-            [train_dataset, val_dataset, test_dataset], train_kwargs
-        )
-    else:
-        raise NotImplementedError(
-            "Geo-spatially based test partitioning has not yet been completed."
-        )
+    dataloaders = construct_dataloaders(
+        [train_dataset, val_dataset, test_dataset], train_kwargs
+    )
 
     del train_dataset, val_dataset, test_dataset  # Save memory after using datasets
 
@@ -85,7 +79,7 @@ def main():
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=directory_path,
-        filename="checkpoint_{epoch:02d}-{val_loss:.4f}",
+        filename=args.name + "_{epoch:02d}-{val_loss:.4f}",
         save_top_k=1,
         monitor="val_loss",
         mode="min",
@@ -133,7 +127,7 @@ def main():
             num_nodes=args.nodes,
             devices=args.gpus,
             log_every_n_steps=log_every_n_steps,
-            enable_progress_bar=True,
+            enable_progress_bar=False,
         )
 
         trainer.fit(model, train_dataloader, val_dataloaders=val_dataloader)

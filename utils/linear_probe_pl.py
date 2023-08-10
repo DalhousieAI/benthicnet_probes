@@ -287,3 +287,24 @@ class LinearProbe(pl.LightningModule):
         test_epoch_loss = self.shared_epoch_end("test")
         self.log("test_loss", test_epoch_loss, sync_dist=True)
         drop_keys_with_string(self.epoch_metrics_dict, "test")
+
+    def predict_head_step(self, batch, head="biota", random_out=False):
+        inputs, data = batch
+
+        # Data for relevant head
+        head_data = data[_SAMPLE_HEAD_DICT[head]]
+
+        # Predictions
+        if random_out:
+            head_outs = torch.rand(head_data.shape, device=self.device) - 0.5
+        else:
+            head_outs = self(inputs)[head]
+        local_R = self.Rs[head].to(self.device)
+        outputs_pred = get_constr_out(head_outs, local_R)
+        sigmoid = nn.Sigmoid()
+        predictions = sigmoid(outputs_pred) > 0.5
+
+        # Masks
+        masks = data[_SAMPLE_HEAD_DICT[head + "_mask"]]
+
+        return predictions, head_data, masks
