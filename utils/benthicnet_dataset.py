@@ -17,7 +17,6 @@ class BenthicNetDataset(torch.utils.data.Dataset):
 
     def __init__(
         self,
-        tar_dir,
         annotations=None,
         transform=None,
     ):
@@ -33,7 +32,6 @@ class BenthicNetDataset(torch.utils.data.Dataset):
         transform : callable, optional
             Optional transform to be applied on a sample.
         """
-        self.tar_dir = tar_dir
         self.dataframe = annotations.copy()
         self.dataframe.loc[:, "tarname"] = self.dataframe.loc[:, "dataset"] + ".tar"
         self.transform = transform
@@ -71,6 +69,50 @@ class BenthicNetDataset(torch.utils.data.Dataset):
         )
 
 
+class OneHotBenthicNetDataset(torch.utils.data.Dataset):
+    """BenthicNet dataset."""
+
+    def __init__(self, annotations=None, transform=None, lab_col="CATAMI Substrate"):
+        """
+        Dataset for BenthicNet data.
+
+        Parameters
+        ----------
+        tar_dir : str
+            Directory with all the images.
+        annotations : str
+            Dataframe with annotations.
+        transform : callable, optional
+            Optional transform to be applied on a sample.
+        """
+        self.dataframe = annotations.copy()
+        self.dataframe.loc[:, "tarname"] = self.dataframe.loc[:, "dataset"] + ".tar"
+        self.transform = transform
+        self.lab_col = lab_col
+
+    def __len__(self):
+        return len(self.dataframe)
+
+    def __getitem__(self, idx):
+        row = self.dataframe.iloc[idx]
+
+        split_img_name = row2basename(row, use_url_extension=True).split(".")
+
+        if len(split_img_name) > 1:
+            img_name = ".".join(split_img_name[:-1]) + ".jpg"
+        else:
+            img_name = split_img_name[0] + ".jpg"
+
+        path = row["dataset"] + "/" + row["site"] + "/" + img_name
+        node_file_path = os.path.join(os.environ["SLURM_TMPDIR"], path)
+        sample = PIL.Image.open(node_file_path)
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample, row[self.lab_col]
+
+
 def random_partition_df(df, val_size, test_size, seed):
     # First, split the data into train and test
     df_train, df_test = train_test_split(df, test_size=test_size, random_state=seed)
@@ -82,7 +124,7 @@ def random_partition_df(df, val_size, test_size, seed):
 
 
 def gen_datasets(
-    df, tar_dir, transform, random_partition, val_size=0.25, test_size=0.2, seed=0
+    df, transform, random_partition, one_hot=False, val_size=0.25, test_size=0.2, seed=0
 ):
     if random_partition:
         df_train, df_val, df_test = random_partition_df(
@@ -101,9 +143,13 @@ def gen_datasets(
         df_train, df_val = train_test_split(
             df_train, test_size=val_percent, random_state=seed
         )
-
-    train_dataset = BenthicNetDataset(tar_dir, df_train, transform=transform[0])
-    val_dataset = BenthicNetDataset(tar_dir, df_val, transform=transform[1])
-    test_dataset = BenthicNetDataset(tar_dir, df_test, transform=transform[1])
+    if one_hot:
+        train_dataset = OneHotBenthicNetDataset(df_train, transform=transform[0])
+        val_dataset = OneHotBenthicNetDataset(df_val, transform=transform[1])
+        test_dataset = OneHotBenthicNetDataset(df_test, transform=transform[1])
+    else:
+        train_dataset = BenthicNetDataset(df_train, transform=transform[0])
+        val_dataset = BenthicNetDataset(df_val, transform=transform[1])
+        test_dataset = BenthicNetDataset(df_test, transform=transform[1])
 
     return train_dataset, val_dataset, test_dataset

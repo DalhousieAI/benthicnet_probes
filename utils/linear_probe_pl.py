@@ -90,14 +90,15 @@ def mcloss(logits, targets, R, masks):
 
 
 # Calculate hierarhcical multilabel model performance metrics
-def ml_metrics(targets, predicted, prefix):
+def ml_metrics(targets, probabilities, predicted, prefix):
     targets = targets.detach().cpu()
+    probabilities = probabilities.detach().cpu()
     predicted = predicted.detach().cpu()
 
     # Total correct predictions - metrics
     if len(targets) > 0:
         acc = accuracy_score(targets, predicted)
-        ap_score = average_precision_score(targets, predicted, average="micro")
+        ap_score = average_precision_score(targets, probabilities, average="micro")
         f1 = f1_score(targets, predicted, average="micro", zero_division=0)
     else:
         acc = -1.0
@@ -213,10 +214,13 @@ class LinearProbe(pl.LightningModule):
             head_losses += head_loss
 
             sigmoid = nn.Sigmoid()
-            predicted = sigmoid(outputs_pred) > 0.5
+            probabilities = sigmoid(outputs_pred)
+            predicted = probabilities > 0.5
             prefix = f"{partition_prefix}_{head}"
 
-            batch_metrics_dict = ml_metrics(targets_pred, predicted, prefix)
+            batch_metrics_dict = ml_metrics(
+                targets_pred, probabilities, predicted, prefix
+            )
 
             self.epoch_metrics_dict = update_epoch_metrics_dict(
                 self.epoch_metrics_dict, batch_metrics_dict

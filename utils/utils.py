@@ -24,6 +24,7 @@ from utils.benthicnet.io import read_csv
 from utils.constrained_ff import ConstrainedFFNNModel
 from utils.linear_probe_pl import LinearProbe
 from utils.multilabel_ff import MultiLabelFFNNModel
+from utils.one_hot_probe_pl import OneHotLinearProbe
 
 # 1. Definitions
 _SAMPLE_HEADERS = [
@@ -113,6 +114,12 @@ def parser():
         help="set path for pre-trained encoder/backbone or determine encoder/backbone architecture",
     )
     parser.add_argument(
+        "--fine_tune",
+        type=bool,
+        default=False,
+        help="set fine tune mode (default: false)",
+    )
+    parser.add_argument(
         "--graph_pth",
         type=str,
         default="../graph_info/finalized_output.csv",
@@ -133,6 +140,80 @@ def parser():
     )
     parser.add_argument(
         "--name", type=str, default="benthicnet_hl", help="set name for the run"
+    )
+    parser.add_argument(
+        "--windows",
+        type=bool,
+        default=False,
+        help="set backend to gloo if running on Windows",
+    )
+
+    return parser.parse_args()
+
+
+def one_hot_parser():
+    parser = argparse.ArgumentParser(
+        description="Parameters for benthicnet probe project"
+    )
+    # Required parameters
+    parser.add_argument(
+        "--train_cfg",
+        type=str,
+        required=True,
+        help="set cfg file for training optimizer",
+    )
+    parser.add_argument("--nodes", type=int, required=True, help="number of nodes")
+    parser.add_argument(
+        "--gpus", type=int, required=True, help="number of gpus per node"
+    )
+
+    # Other parameters
+    parser.add_argument(
+        "--tar_dir",
+        type=str,
+        default="/gpfs/project/6012565/become_labelled/compiled_labelled_512px/tar",
+        help="set directory for training tar file",
+    )
+    parser.add_argument(
+        "--csv",
+        type=str,
+        default="/lustre06/project/6012565/isaacxu/benthicnet_probes/data_csv/ \
+            one_hots/substrate_depth_2_data/substrate_depth_2_data.csv",
+        help="set path for data csv",
+    )
+    parser.add_argument(
+        "--colour_jitter",
+        type=bool,
+        default=False,
+        help="turn on/off colour jitter for image augmentation",
+    )
+    parser.add_argument(
+        "--enc_pth",
+        type=str,
+        default=None,
+        help="set path for pre-trained encoder/backbone or determine encoder/backbone architecture",
+    )
+    parser.add_argument("--seed", type=int, default=0, help="random seed (default: 0)")
+    parser.add_argument(
+        "--fine_tune",
+        type=bool,
+        default=False,
+        help="set fine tune mode (default: false)",
+    )
+    parser.add_argument(
+        "--random_partition",
+        type=bool,
+        default=False,
+        help="bool flag to randomly partition data (default: True)",
+    )
+    parser.add_argument(
+        "--test_mode",
+        type=bool,
+        default=False,
+        help="sets bool flag to test only (loads head weights as well)",
+    )
+    parser.add_argument(
+        "--name", type=str, default="benthicnet_one_hot", help="set name for the run"
     )
     parser.add_argument(
         "--windows",
@@ -333,10 +414,19 @@ class Lighting(object):
 
 # Fine tune aug stack (from FastAutoAug - MIT License)
 # https://github.com/kakaobrain/fast-autoaugment
-def get_augs(colour_jitter: bool, input_size=224, size_size=256):
+def get_augs(colour_jitter: bool, input_size=224, size_size=256, use_benthicnet=True):
     imagenet_mean_std = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
+    benthicnet_mean_std = transforms.Normalize(
+        mean=[0.363, 0.420, 0.344], std=[0.207, 0.210, 0.183]
+    )
+
+    if use_benthicnet:
+        default_mean_std = benthicnet_mean_std
+    else:
+        default_mean_std = imagenet_mean_std
+
     if colour_jitter:
         train_transforms = transforms.Compose(
             [
@@ -354,7 +444,7 @@ def get_augs(colour_jitter: bool, input_size=224, size_size=256):
                 ),
                 transforms.ToTensor(),
                 Lighting(0.1, _IMAGENET_PCA["eigval"], _IMAGENET_PCA["eigvec"]),
-                imagenet_mean_std,
+                default_mean_std,
             ]
         )
     else:
@@ -363,19 +453,17 @@ def get_augs(colour_jitter: bool, input_size=224, size_size=256):
                 transforms.RandomResizedCrop(input_size),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                imagenet_mean_std,
+                default_mean_std,
             ]
         )
-
     val_transforms = transforms.Compose(
         [
             transforms.Resize(size_size),
             transforms.CenterCrop(input_size),
             transforms.ToTensor(),
-            imagenet_mean_std,
+            default_mean_std,
         ]
     )
-
     return train_transforms, val_transforms
 
 
@@ -591,8 +679,71 @@ def construct_model(
     )
 
     # Prepare scheduler
-
     scheduler = process_scheduler(train_kwargs, optimizer, lr)
 
     model = LinearProbe(enc, heads, optimizer, scheduler, Rs)
     return model
+
+
+def construct_one_hot_model(
+    train_kwargs, enc_pth=None, test_mode=False, fine_tune_mode=False
+):
+    # Prepare encoder - Note (for json): use "IMAGENET1K_V1" for ImageNet weights, null for None
+    # Note: dims argument should not include input_dim, that is automatically obtained
+    backbone = train_kwargs.backbone
+    backbone_name = backbone.name
+    enc = _BACKBONES[backbone_name](weights=backbone.weights)
+    if enc_pth:
+        origin = omegaconf_select(train_kwargs, "backbone.origin")
+        enc = load_model_state(enc, enc_pth, origin=origin)
+    else:
+        print("No encoder weights loaded.")
+    set_requires_grad(enc, backbone.grad)
+    if "resnet" in backbone_name:
+        features_dim = enc.inplanes
+        enc.fc = nn.Identity()
+    elif "vit" in backbone_name:
+        features_dim = enc.num_features
+    else:
+        print("No adjusment to:", backbone_name)
+
+    classifier = construct_head(
+        input_dim=features_dim,
+        hidden_dim=train_kwargs.dims[0:-1],
+        dropout=train_kwargs.dropout,
+        type="ML",
+        non_lin=None,
+        R=train_kwargs.dims[-1],
+    )
+    component = "classifier"
+    if test_mode or fine_tune_mode:
+        classifier = load_model_state(
+            classifier, enc_pth, origin=origin, component=component
+        )
+
+    # Combine parameters of encoder and heads
+    encoder_params = enc.parameters()
+    classifier_params = classifier.parameters()
+
+    all_params = list(encoder_params) + list(classifier_params)
+
+    # Prepare optimizer
+    optimizer_name = train_kwargs.optimizer.name
+    lr = train_kwargs.optimizer.lr
+    wd = train_kwargs.optimizer.weight_decay
+    extra_optimizer_args = train_kwargs.optimizer.extra_optimizer_args
+    optimizer = _OPTIMIZERS[optimizer_name](
+        all_params, lr=lr, weight_decay=wd, **extra_optimizer_args
+    )
+
+    # Prepare scheduler
+    scheduler = process_scheduler(train_kwargs, optimizer, lr)
+
+    model = OneHotLinearProbe(enc, classifier, optimizer, scheduler)
+    return model
+
+
+# 6. One-hot relevant functions
+def process_one_hot_df(data_df, col):
+    data_df[col] = data_df[col].apply(lambda x: ast.literal_eval(x)[0])
+    return data_df

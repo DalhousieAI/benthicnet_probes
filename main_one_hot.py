@@ -12,22 +12,17 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from utils.benthicnet_dataset import gen_datasets
 from utils.utils import (
     construct_dataloaders,
-    construct_model,
-    gen_R_mat,
-    gen_root_graphs,
+    construct_one_hot_model,
     get_augs,
     get_df,
-    parser,
-    process_data_df,
+    one_hot_parser,
+    process_one_hot_df,
     set_seed,
 )
 
 
-# args: train_cfg, nodes, gpus, tar_dir, csv, colour_jitter, enc,
-# graph_pth, seed, random_partition, name, windows
 def main():
-    # Prepare argument parameters
-    args = parser()
+    args = one_hot_parser()
     set_seed(args.seed)
 
     # Set up environment variables
@@ -37,43 +32,45 @@ def main():
 
     # Set up training configurations
     train_cfg_path = args.train_cfg
-    with open(train_cfg_path, "r") as f:
+    with open(train_cfg_path, "r", encoding="utf-8") as f:
         train_cfg_content = f.read()
 
     train_cfg = loads(train_cfg_content)
     train_kwargs = OmegaConf.create(train_cfg)
 
-    # Get graphs
-    root_graphs, _, _ = gen_root_graphs(args.graph_pth)
-    Rs = {root: gen_R_mat(graph) for root, graph in root_graphs.items()}
+    raw_data_df = get_df(args.csv)
+    num_classes = len(raw_data_df[train_kwargs.column].unique())
+    data_df = process_one_hot_df(raw_data_df, train_kwargs.column)
 
-    # Build model
-    model = construct_model(train_kwargs, Rs, args.enc_pth, args.test_mode)
+    train_kwargs.dims.append(num_classes)
 
-    # Set up data
-    data_df = get_df(args.csv)
-    data_df = process_data_df(data_df, Rs)
-
-    train_transform, val_transform = get_augs(args.colour_jitter)
+    # Construct dataloaders
+    train_transform, val_transform = get_augs(colour_jitter=args.colour_jitter)
     transform = [train_transform, val_transform]
 
     train_dataset, val_dataset, test_dataset = gen_datasets(
-        data_df, transform, args.random_partition, seed=args.seed
+        data_df, transform, args.random_partition, one_hot=True, seed=args.seed
     )
 
     dataloaders = construct_dataloaders(
         [train_dataset, val_dataset, test_dataset], train_kwargs
     )
 
-    del train_dataset, val_dataset, test_dataset  # Save memory after using datasets
-
     train_dataloader = dataloaders[0]
     val_dataloader = dataloaders[1]
     test_dataloader = dataloaders[2]
 
+    # Build model
+    model = construct_one_hot_model(
+        train_kwargs,
+        enc_pth=args.enc_pth,
+        test_mode=args.test_mode,
+        fine_tune_mode=args.fine_tune,
+    )
+
     # Set up callbacks
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    directory_path = os.path.join("checkpoints", timestamp)
+    directory_path = os.path.join("./checkpoints", timestamp)
 
     csv_logger = CSVLogger("logs", name=args.name + "_logs", version=timestamp)
 

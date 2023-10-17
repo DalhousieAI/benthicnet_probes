@@ -12,7 +12,6 @@
 set -e
 
 # Set and activate the virtual environment
-ENVNAME=pl_env
 source ~/venvs/pl_env/bin/activate
 
 srun python ../check_for_problem_imgs.py \

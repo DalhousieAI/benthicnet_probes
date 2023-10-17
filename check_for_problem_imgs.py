@@ -4,7 +4,6 @@ import tarfile
 import torch
 
 from utils.benthicnet.io import row2basename
-from utils.benthicnet_dataset import BenthicNetDataset
 from utils.utils import get_df
 
 
@@ -79,10 +78,8 @@ def save_list_to_txt(list_data, file_path):
 
 def main():
     problem_img_paths = []
-    tar_dir = (
-        "/lustre06/project/6012565/become/benthicnet-compiled/compiled_250s_512px/tar"
-    )
-    csv_path = "/lustre06/project/def-ttt/isaacxu/benthicnet_probes/data_csv/benthicnet_unlabelled_sub_eval.csv"
+    tar_dir = "/lustre06/project/6012565/become/benthicnet-compiled/compiled_unlabelled_512px/tar"
+    csv_path = "/lustre06/project/6012565/isaacxu/benthicnet_probes/data_csv/benthicnet_unlabelled_sub_eval.csv"
 
     df = get_df(csv_path)
     print("Loaded:", csv_path)
