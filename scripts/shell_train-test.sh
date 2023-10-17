@@ -36,7 +36,7 @@ source "../slurm/copy_and_extract_data.sh"
 srun python ../main.py \
     --train_cfg "../cfgs/cnn/resnet50_hp_1024_test.json" \
     --enc_pth "../pretrained_encoders/100K_benthicnet_resnet50_checkpoint_epoch=99-val_loss=0.1433.ckpt" \
-    --csv "../data_csv/size_10K_benthicnet.csv" \
+    --csv "../data_csv/benthicnet10k.csv" \
     --nodes "$SLURM_JOB_NUM_NODES" \
     --gpus "$GPUS_PER_NODE" \
     --name "hl_train_test"

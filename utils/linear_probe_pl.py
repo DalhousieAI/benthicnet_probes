@@ -90,14 +90,15 @@ def mcloss(logits, targets, R, masks):
 
 
 # Calculate hierarhcical multilabel model performance metrics
-def ml_metrics(targets, predicted, prefix):
+def ml_metrics(targets, probabilities, predicted, prefix):
     targets = targets.detach().cpu()
+    probabilities = probabilities.detach().cpu()
     predicted = predicted.detach().cpu()
 
     # Total correct predictions - metrics
     if len(targets) > 0:
         acc = accuracy_score(targets, predicted)
-        ap_score = average_precision_score(targets, predicted, average="micro")
+        ap_score = average_precision_score(targets, probabilities, average="micro")
         f1 = f1_score(targets, predicted, average="micro", zero_division=0)
     else:
         acc = -1.0
@@ -213,10 +214,13 @@ class LinearProbe(pl.LightningModule):
             head_losses += head_loss
 
             sigmoid = nn.Sigmoid()
-            predicted = sigmoid(outputs_pred) > 0.5
+            probabilities = sigmoid(outputs_pred)
+            predicted = probabilities > 0.5
             prefix = f"{partition_prefix}_{head}"
 
-            batch_metrics_dict = ml_metrics(targets_pred, predicted, prefix)
+            batch_metrics_dict = ml_metrics(
+                targets_pred, probabilities, predicted, prefix
+            )
 
             self.epoch_metrics_dict = update_epoch_metrics_dict(
                 self.epoch_metrics_dict, batch_metrics_dict
@@ -287,3 +291,24 @@ class LinearProbe(pl.LightningModule):
         test_epoch_loss = self.shared_epoch_end("test")
         self.log("test_loss", test_epoch_loss, sync_dist=True)
         drop_keys_with_string(self.epoch_metrics_dict, "test")
+
+    def predict_head_step(self, batch, head="biota", random_out=False):
+        inputs, data = batch
+
+        # Data for relevant head
+        head_data = data[_SAMPLE_HEAD_DICT[head]]
+
+        # Predictions
+        if random_out:
+            head_outs = torch.rand(head_data.shape, device=self.device) - 0.5
+        else:
+            head_outs = self(inputs)[head]
+        local_R = self.Rs[head].to(self.device)
+        outputs_pred = get_constr_out(head_outs, local_R)
+        sigmoid = nn.Sigmoid()
+        predictions = sigmoid(outputs_pred) > 0.5
+
+        # Masks
+        masks = data[_SAMPLE_HEAD_DICT[head + "_mask"]]
+
+        return predictions, head_data, masks

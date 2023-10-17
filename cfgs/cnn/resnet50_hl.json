@@ -52,13 +52,13 @@
       "num_classes": 14
     }
   },
-  "max_epochs": 100,
+  "max_epochs": 400,
   "backbone_params": {
     "zero_init_residual": true
   },
   "optimizer": {
     "name": "adamw",
-    "lr": 0.0001,
+    "lr": 1e-05,
     "weight_decay": 1e-05,
     "extra_optimizer_args": {
       "betas": [

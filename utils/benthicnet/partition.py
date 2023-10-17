@@ -2,16 +2,13 @@
 # coding: utf-8
 
 import functools
-import os
 
-import benthicnet.io
-import benthicnet.plotting
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sklearn.neighbors
-from benthicnet.kde_tools import EARTH_RADIUS
-from tqdm.auto import tqdm
+
+import utils.benthicnet.io
+from utils.benthicnet.kde_tools import EARTH_RADIUS
 
 PARTITION2COLOR = {
     "train": "g",
@@ -34,7 +31,6 @@ def partition_dataset(
     exclusion_distance=50,
     exclusion_distance_strict=10,
     only_exclude_same_label=None,
-    show_plots=None,
 ):
     """
     Partition a dataset, using spatial (lat/lon) coordinates.
@@ -67,12 +63,7 @@ def partition_dataset(
         hold within a class, not between them). This will not work for multiply
         annotated images. Default behaviour is to partition classes separately
         when images are singly labelled.
-    show_plots : bool or None, default=None
-        Whether to plot map showing sample locations.
-        If ``None`` (default), maps are shown if ``verbosity >= 2``.
     """
-    if show_plots is None:
-        show_plots = verbosity >= 2
 
     if verbosity >= 1:
         print("Parameters...")
@@ -85,16 +76,23 @@ def partition_dataset(
         print("exclusion_distance:", exclusion_distance)
         print("exclusion_distance_strict:", exclusion_distance_strict)
         print("only_exclude_same_label:", only_exclude_same_label)
-        print("show_plots:", show_plots)
         print()
 
     if verbosity >= 1:
         print(f"Input dataframe has {len(df)} rows")
 
+    test_mask = df["partition"] == "test"
+
+    df_test = df[test_mask]
+    df = df[~test_mask]
+
+    df_no_location = df[(pd.isna(df["latitude"])) | (pd.isna(df["longitude"]))].copy()
+    df_no_location.loc[:, "partition"] = "train"
+
     # Remove samples missing lat/lon values
     df = df[(~pd.isna(df["latitude"])) & (~pd.isna(df["longitude"]))]
     # Add outpath, so we can determine which rows are the same image
-    df["_outpath"] = benthicnet.io.determine_outpath(df)
+    df["_outpath"] = utils.benthicnet.io.determine_outpath(df)
     # Initialize columns to use for partition output and working values,
     # minimum distances from samples in train/test partition.
     df["partition"] = ""
@@ -135,24 +133,6 @@ def partition_dataset(
         for x in total_ulabel_counts.index:
             x_ = x + " " * (max_label_name_len - len(x))
             print(f"{x_} {total_ulabel_counts[x]:>4d}")
-
-    def show_label_locations():
-        """
-        Plot partition distribution on a map.
-        """
-        c = df[label_col].apply(lambda x: np.nonzero(all_labels == x)[0][0])
-        ax = benthicnet.plotting.plot_samples(
-            df["latitude"],
-            df["longitude"],
-            c=c,
-            s=20,
-            global_map=False,
-            show_map="two-tone-alt",
-            figsize=(25, 10),
-        )
-        ax.gridlines(draw_labels=True, linewidth=1, color="w")
-        plt.title("Class distribution", size=20)
-        plt.show()
 
     target_test_total_1 = round(
         np.median(total_ulabel_counts[total_ulabel_counts > 3]) * target_pc_median / 100
@@ -239,39 +219,16 @@ def partition_dataset(
                 s += f" {n:>8d}"
         print(s + "\n")
 
-    def show_sample_partitioning():
-        """
-        Plot samples on map, with colour-coded partitions.
-        """
-        c = df["partition"].apply(lambda x: PARTITION2COLOR.get(x, "#888"))
-        ax = benthicnet.plotting.plot_samples(
-            df["latitude"],
-            df["longitude"],
-            c=c,
-            s=20,
-            global_map=False,
-            show_map="two-tone-alt",
-            figsize=(25, 10),
-        )
-        ax.gridlines(draw_labels=True, linewidth=1, color="w")
-        plt.show()
-
-    def report(pc=False, plot=False):
+    def report(pc=False):
         """
         Print current partitioning tallies.
         Parameters
         ----------
         pc : bool, default=False
             Whether to print values as a percentage.
-        plot : bool, default=False
-            Whether to show map indicating partition sample locations.
         """
         # Print partitioning
         print_table(pc=pc)
-        if not plot:
-            return
-        # Show map
-        show_sample_partitioning()
 
     def update_neighbourhood_partition_name(current, neighbour):
         """
@@ -1003,9 +960,6 @@ def partition_dataset(
         print("Final partitioning:")
         report()
         report(pc=True)
-        if show_plots:
-            show_label_locations()
-            report(plot=True)
 
     # Remove columns we added for our own workspace
     df.drop(
@@ -1017,5 +971,7 @@ def partition_dataset(
         ],
         inplace=True,
     )
+
+    df = pd.concat([df_test, df_no_location, df])
 
     return df

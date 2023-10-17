@@ -4,7 +4,6 @@ import tarfile
 import torch
 
 from utils.benthicnet.io import row2basename
-from utils.benthicnet_dataset import BenthicNetDataset
 from utils.utils import get_df
 
 
@@ -56,7 +55,7 @@ class BenthicNetDatasetSkeleton(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         row = self.dataframe.iloc[idx]
 
-        split_img_name = row2basename(row, use_url_extension=False).split(".")
+        split_img_name = row2basename(row, use_url_extension=True).split(".")
 
         if len(split_img_name) > 1:
             img_name = ".".join(split_img_name[:-1]) + ".jpg"
@@ -79,8 +78,8 @@ def save_list_to_txt(list_data, file_path):
 
 def main():
     problem_img_paths = []
-    tar_dir = "/project/def-ttt/become/benthicnet-compiled/compiled_labelled_512px/tar/"
-    csv_path = "./data_csv/size_full_unique_images.csv"
+    tar_dir = "/lustre06/project/6012565/become/benthicnet-compiled/compiled_unlabelled_512px/tar"
+    csv_path = "/lustre06/project/6012565/isaacxu/benthicnet_probes/data_csv/benthicnet_unlabelled_sub_eval.csv"
 
     df = get_df(csv_path)
     print("Loaded:", csv_path)
@@ -113,7 +112,10 @@ def main():
         )
 
     print("\nTotal number of encountered problem images:", len(problem_img_paths))
-    save_list_to_txt(problem_img_paths, "./data_csv/problem_imgs.txt")
+    save_list_to_txt(
+        problem_img_paths,
+        "/lustre06/project/def-ttt/isaacxu/benthicnet_probes/data_csv/unlabelled_problem_imgs.txt",
+    )
 
 
 if __name__ == "__main__":

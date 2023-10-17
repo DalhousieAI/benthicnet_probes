@@ -1,6 +1,7 @@
 import torch.nn as nn
 
 
+# Can be used for one hot output
 class MultiLabelFFNNModel(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, dropout):
         super(MultiLabelFFNNModel, self).__init__()

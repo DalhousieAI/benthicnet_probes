@@ -1,15 +1,15 @@
 #!/bin/bash
-#SBATCH --time=00-01:00:00          # max walltime, hh:mm:ss
+#SBATCH --time=00-03:00:00          # max walltime, hh:mm:ss
 #SBATCH --nodes 1                   # Number of nodes to request
-#SBATCH --gpus-per-node=a100:1      # Number of GPUs per node to request
-#SBATCH --tasks-per-node=1          # Number of processes to spawn per node
+#SBATCH --gpus-per-node=a100:4      # Number of GPUs per node to request
+#SBATCH --tasks-per-node=4          # Number of processes to spawn per node
 #SBATCH --cpus-per-task=12          # Number of CPUs per GPU
-#SBATCH --mem=256G                  # Memory per node
+#SBATCH --mem=498G                  # Memory per node
 #SBATCH --output=../logs/%x_%A-%a_%n-%t.out
-#SBATCH --job-name=hp_test_test
+#SBATCH --job-name=ohp_hl_400e_rn50
 #SBATCH --account=def-ttt			# Use default account
 
-GPUS_PER_NODE=1
+GPUS_PER_NODE=4
 
 # Exit if any command hits an error
 set -e
@@ -33,11 +33,10 @@ source "../slurm/get_socket.sh"
 # Copy and extract data over to the node
 source "../slurm/copy_and_extract_data.sh"
 
-srun python ../main.py \
-    --train_cfg "../cfgs/cnn/resnet50_hp_1024_test.json" \
-    --enc_pth "../pretrained_encoders/100K_benthicnet_resnet50_checkpoint_epoch=99-val_loss=0.1433.ckpt" \
-    --csv "../data_csv/benthicnet10k.csv" \
+srun python ../main_one_hot.py \
+    --train_cfg "../cfgs/cnn/resnet50_ohp.json" \
+    --csv "/lustre06/project/6012565/isaacxu/benthicnet_probes/data_csv/one_hots/substrate_depth_2_data/substrate_depth_2_data.csv" \
+    --enc_pth "../pretrained_encoders/hl_rn50_400e.ckpt" \
     --nodes "$SLURM_JOB_NUM_NODES" \
     --gpus "$GPUS_PER_NODE" \
-    --test_mode true \
-    --name "hp_test_test"
+    --name "ohp_hl_rn50_400e"
