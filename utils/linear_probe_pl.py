@@ -98,16 +98,16 @@ def ml_metrics(targets, probabilities, predicted, prefix):
     # Total correct predictions - metrics
     if len(targets) > 0:
         acc = accuracy_score(targets, predicted)
-        ap_score = average_precision_score(targets, probabilities, average="micro")
+        ap = average_precision_score(targets, probabilities, average="micro")
         f1 = f1_score(targets, predicted, average="micro", zero_division=0)
     else:
         acc = -1.0
-        ap_score = -1.0
+        ap = -1.0
         f1 = -1.0
 
     scores_dict = {
         prefix + "_acc": [acc],
-        prefix + "_ap_score": [ap_score],
+        prefix + "_ap_score": [ap],
         prefix + "_f1_score": [f1],
     }
     return scores_dict

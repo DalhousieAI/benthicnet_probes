@@ -11,8 +11,10 @@
 
 GPUS_PER_NODE=4
 
-ENC_PTH=$2
-NAME=$1
+ENC_PTH=$1
+NAME=$2
+SEED=${3:-0}
+CSV=${4:-"/lustre06/project/6012565/isaacxu/benthicnet_probes/data_csv/one_hots/substrate_depth_2_data/substrate_depth_2_data.csv"}
 
 # Exit if any command hits an error
 set -e
@@ -43,3 +45,4 @@ srun python ../main_one_hot.py \
     --gpus "$GPUS_PER_NODE" \
     --enc_pth "$ENC_PTH" \
     --name "$NAME" \
+    --seed "$SEED" \

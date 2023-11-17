@@ -54,11 +54,13 @@ def main():
     data_df = get_df(args.csv)
     data_df = process_data_df(data_df, Rs)
 
-    train_transform, val_transform = get_augs(args.colour_jitter)
+    train_transform, val_transform = get_augs(
+        colour_jitter=args.colour_jitter, use_benthicnet="img" not in args.name
+    )
     transform = [train_transform, val_transform]
 
     train_dataset, val_dataset, test_dataset = gen_datasets(
-        data_df, transform, args.random_partition, seed=args.seed
+        data_df, transform, args.random_partition, one_hot=False, seed=args.seed
     )
 
     dataloaders = construct_dataloaders(
