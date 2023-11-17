@@ -677,7 +677,7 @@ def construct_model(
         enc.fc = nn.Identity()
     elif "vit" in backbone_name:
         features_dim = _VIT_NUM_FEATURES[backbone_name]
-        enc.heads.head = nn.Identity()
+        enc.heads = nn.Identity()
     else:
         print("No adjusment to:", backbone_name)
 
