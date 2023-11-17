@@ -45,7 +45,9 @@ def main():
     train_kwargs.dims.append(num_classes)
 
     # Construct dataloaders
-    train_transform, val_transform = get_augs(colour_jitter=args.colour_jitter)
+    train_transform, val_transform = get_augs(
+        colour_jitter=args.colour_jitter, use_benthicnet="img" not in args.name
+    )
     transform = [train_transform, val_transform]
 
     train_dataset, val_dataset, test_dataset = gen_datasets(

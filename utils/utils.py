@@ -70,6 +70,13 @@ _BACKBONES = {
     "vit_l_32": models.vit_l_32,
 }
 
+_VIT_NUM_FEATURES = {
+    "vit_b_16": 768,
+    "vit_b_32": 768,
+    "vit_l_16": 1024,
+    "vit_l_32": 1024,
+}
+
 
 # 1. Base utility functions
 def parser():
@@ -130,7 +137,7 @@ def parser():
         "--random_partition",
         type=bool,
         default=False,
-        help="bool flag to randomly partition data (default: True)",
+        help="bool flag to randomly partition data (default: False)",
     )
     parser.add_argument(
         "--test_mode",
@@ -204,7 +211,7 @@ def one_hot_parser():
         "--random_partition",
         type=bool,
         default=False,
-        help="bool flag to randomly partition data (default: True)",
+        help="bool flag to randomly partition data (default: False)",
     )
     parser.add_argument(
         "--test_mode",
@@ -419,7 +426,10 @@ def get_augs(colour_jitter: bool, input_size=224, size_size=256, use_benthicnet=
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
     benthicnet_mean_std = transforms.Normalize(
-        mean=[0.363, 0.420, 0.344], std=[0.207, 0.210, 0.183]
+        # labelled_dataset_stats
+        # mean=[0.363, 0.420, 0.344], std=[0.207, 0.210, 0.183]
+        mean=[0.359, 0.413, 0.386],
+        std=[0.219, 0.215, 0.209],
     )
 
     if use_benthicnet:
@@ -512,32 +522,67 @@ def load_model_state(model, ckpt_path, origin=None, component="encoder"):
 
     state = loaded_dict[key]
     loading_state = {}
-
     model_keys = model.state_dict().keys()
 
-    for k in list(state.keys()):
-        k_split = k.split(".")
-        k_0 = k_split[0]
-        if len(k_split) > 1:
-            k_1 = k_split[1]
-        else:
-            k_1 = ""
+    if any(s in ckpt_path for s in ("mocov3", "mae", "vit")):
+        loading_state = get_vit_state(model, state, model_keys, loading_state)
+    else:
+        for k in list(state.keys()):
+            k_split = k.split(".")
+            k_0 = k_split[0]
+            if len(k_split) > 1:
+                k_1 = k_split[1]
+            else:
+                k_1 = ""
 
-        k_heads = ".".join([k_0, k_1])
-        if k_0 == component or k_heads == component:
-            k_to_check = k.replace(f"{component}.", "")
-        elif k_0 == alt_component_name or k_heads == alt_component_name:
-            k_to_check = k.replace(f"{alt_component_name}.", "")
-        else:
-            k_to_check = k
+            k_heads = ".".join([k_0, k_1])
+            if k_0 == component or k_heads == component:
+                k_to_check = k.replace(f"{component}.", "")
+            elif k_0 == alt_component_name or k_heads == alt_component_name:
+                k_to_check = k.replace(f"{alt_component_name}.", "")
+            else:
+                k_to_check = k
 
-        if k_to_check in model_keys:
-            loading_state[k_to_check] = state[k]
-
+            if k_to_check in model_keys:
+                loading_state[k_to_check] = state[k]
+    print(
+        f"Loading {len(loading_state.keys())} layers for {component}"
+        " Expected layers (approx):\n\tViT base: 150\n\tViT Large: 294\n\tResNet-50: 320"
+    )
     model.load_state_dict(loading_state, strict=False)
     print(f"Loaded {component} from {ckpt_path}.")
 
     return model
+
+
+# Function for supporting ViT loading
+def get_vit_state(model, state, model_keys, loading_state, reorder_pos_emb=True):
+    # Remove default ImageNet head from requiring loading
+    model_keys = list(model_keys)[:-2]
+    state_list = list(state.items())
+    if reorder_pos_emb:
+        pos_emb = state_list[1]
+        conv_proj_w = state_list[2]
+        conv_proj_b = state_list[3]
+
+        state_list[1] = conv_proj_w
+        state_list[2] = conv_proj_b
+        state_list[3] = pos_emb
+
+    for i, key in enumerate(model_keys):
+        try:
+            assert model.state_dict()[key].shape == state_list[i][1].shape
+            loading_state[key] = state_list[i][1]
+        except AssertionError:
+            print(
+                f"\nViT layer {i} {key}, does not match loading state layer {state_list[i][0]}"
+            )
+            print(
+                f"Expected shape: {model.state_dict()[key].shape}, "
+                f"from loading state got shape: {state_list[i][1].shape}"
+            )
+            continue
+    return loading_state
 
 
 # Freeze model weights
@@ -631,7 +676,8 @@ def construct_model(
         features_dim = enc.inplanes
         enc.fc = nn.Identity()
     elif "vit" in backbone_name:
-        features_dim = enc.num_features
+        features_dim = _VIT_NUM_FEATURES[backbone_name]
+        enc.heads.head = nn.Identity()
     else:
         print("No adjusment to:", backbone_name)
 
@@ -703,7 +749,8 @@ def construct_one_hot_model(
         features_dim = enc.inplanes
         enc.fc = nn.Identity()
     elif "vit" in backbone_name:
-        features_dim = enc.num_features
+        features_dim = _VIT_NUM_FEATURES[backbone_name]
+        enc.heads = nn.Identity()
     else:
         print("No adjusment to:", backbone_name)
 

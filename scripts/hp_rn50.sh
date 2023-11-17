@@ -1,15 +1,20 @@
 #!/bin/bash
-#SBATCH --time=00-02:00:00          # max walltime, hh:mm:ss
+#SBATCH --time=00-03:00:00          # max walltime, hh:mm:ss
 #SBATCH --nodes 1                   # Number of nodes to request
 #SBATCH --gpus-per-node=a100:4      # Number of GPUs per node to request
 #SBATCH --tasks-per-node=4          # Number of processes to spawn per node
 #SBATCH --cpus-per-task=12          # Number of CPUs per GPU
 #SBATCH --mem=498G                  # Memory per node
 #SBATCH --output=../logs/%x_%A-%a_%n-%t.out
-#SBATCH --job-name=ohl_rn50
+#SBATCH --job-name=hp_mcv2_rn50
 #SBATCH --account=def-ttt			# Use default account
 
 GPUS_PER_NODE=4
+
+ENC_PTH=$1
+NAME=$2
+SEED=${3:-0}
+CSV=${4:-"/lustre06/project/6012565/isaacxu/benthicnet_probes/data_csv/benthicnet_nn.csv"}
 
 # Exit if any command hits an error
 set -e
@@ -33,9 +38,11 @@ source "../slurm/get_socket.sh"
 # Copy and extract data over to the node
 source "../slurm/copy_and_extract_data.sh"
 
-srun python ../main_one_hot.py \
-    --train_cfg "../cfgs/cnn/resnet50_ohl.json" \
-    --csv "/lustre06/project/6012565/isaacxu/benthicnet_probes/data_csv/one_hots/substrate_depth_2_data/substrate_depth_2_data.csv" \
+srun python ../main.py \
+    --train_cfg "../cfgs/cnn/resnet50_hp.json" \
+    --enc_pth "$ENC_PTH" \
+    --csv "$CSV" \
     --nodes "$SLURM_JOB_NUM_NODES" \
     --gpus "$GPUS_PER_NODE" \
-    --name "ohl_rn50" \
+    --name "$NAME" \
+    --seed "$SEED" \

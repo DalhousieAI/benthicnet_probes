@@ -6,7 +6,7 @@
   },
   "batch_size": 256,
   "column": "CATAMI Substrate",
-  "num_workers": 4,
+  "num_workers": 12,
   "max_epochs": 100,
   "dims": [],
   "dropout": 0.7,
@@ -15,7 +15,7 @@
   },
   "optimizer": {
     "name": "adamw",
-    "lr": 1e-05,
+    "lr": 3e-05,
     "weight_decay": 1e-05,
     "extra_optimizer_args": {
       "betas": [
@@ -28,7 +28,7 @@
     "name": "warmup_cosine",
     "interval": "epoch",
     "warmup_epochs": 10,
-    "warmup_start_lr": 1e-06,
-    "min_lr": 1e-06
+    "warmup_start_lr": 3e-06,
+    "min_lr": 3e-06
   }
 }
