@@ -77,12 +77,9 @@ _VIT_NUM_FEATURES = {
     "vit_l_32": 1024,
 }
 
-
 # 1. Base utility functions
 def parser():
-    parser = argparse.ArgumentParser(
-        description="Parameters for benthicnet probe project"
-    )
+    parser = argparse.ArgumentParser(description="Parameters for benthicnet probe project")
     # Required parameters
     parser.add_argument(
         "--train_cfg",
@@ -120,12 +117,7 @@ def parser():
         default=None,
         help="set path for pre-trained encoder/backbone or determine encoder/backbone architecture",
     )
-    parser.add_argument(
-        "--fine_tune",
-        type=bool,
-        default=False,
-        help="set fine tune mode (default: false)",
-    )
+    parser.add_argument("--fine_tune", type=bool, default=False, help="set fine tune mode (default: false)")
     parser.add_argument(
         "--graph_pth",
         type=str,
@@ -157,11 +149,8 @@ def parser():
 
     return parser.parse_args()
 
-
 def one_hot_parser():
-    parser = argparse.ArgumentParser(
-        description="Parameters for benthicnet probe project"
-    )
+    parser = argparse.ArgumentParser(description="Parameters for benthicnet probe project")
     # Required parameters
     parser.add_argument(
         "--train_cfg",
@@ -201,12 +190,7 @@ def one_hot_parser():
         help="set path for pre-trained encoder/backbone or determine encoder/backbone architecture",
     )
     parser.add_argument("--seed", type=int, default=0, help="random seed (default: 0)")
-    parser.add_argument(
-        "--fine_tune",
-        type=bool,
-        default=False,
-        help="set fine tune mode (default: false)",
-    )
+    parser.add_argument("--fine_tune", type=bool, default=False, help="set fine tune mode (default: false)")
     parser.add_argument(
         "--random_partition",
         type=bool,
@@ -230,7 +214,6 @@ def one_hot_parser():
     )
 
     return parser.parse_args()
-
 
 def get_df(in_path):
     df = read_csv(
@@ -428,8 +411,7 @@ def get_augs(colour_jitter: bool, input_size=224, size_size=256, use_benthicnet=
     benthicnet_mean_std = transforms.Normalize(
         # labelled_dataset_stats
         # mean=[0.363, 0.420, 0.344], std=[0.207, 0.210, 0.183]
-        mean=[0.359, 0.413, 0.386],
-        std=[0.219, 0.215, 0.209],
+        mean=[0.359, 0.413, 0.386], std=[0.219, 0.215, 0.209]
     )
 
     if use_benthicnet:
@@ -545,15 +527,12 @@ def load_model_state(model, ckpt_path, origin=None, component="encoder"):
 
             if k_to_check in model_keys:
                 loading_state[k_to_check] = state[k]
-    print(
-        f"Loading {len(loading_state.keys())} layers for {component}"
-        " Expected layers (approx):\n\tViT base: 150\n\tViT Large: 294\n\tResNet-50: 320"
-    )
+    print(f"Loading {len(loading_state.keys())} layers for {component}"
+          " Expected layers (approx):\n\tViT base: 150\n\tViT Large: 294\n\tResNet-50: 320")
     model.load_state_dict(loading_state, strict=False)
     print(f"Loaded {component} from {ckpt_path}.")
 
     return model
-
 
 # Function for supporting ViT loading
 def get_vit_state(model, state, model_keys, loading_state, reorder_pos_emb=True):
@@ -571,19 +550,14 @@ def get_vit_state(model, state, model_keys, loading_state, reorder_pos_emb=True)
 
     for i, key in enumerate(model_keys):
         try:
-            assert model.state_dict()[key].shape == state_list[i][1].shape
+            assert(model.state_dict()[key].shape == state_list[i][1].shape)
             loading_state[key] = state_list[i][1]
         except AssertionError:
-            print(
-                f"\nViT layer {i} {key}, does not match loading state layer {state_list[i][0]}"
-            )
-            print(
-                f"Expected shape: {model.state_dict()[key].shape}, "
-                f"from loading state got shape: {state_list[i][1].shape}"
-            )
+            print(f"\nViT layer {i} {key}, does not match loading state layer {state_list[i][0]}")
+            print(f"Expected shape: {model.state_dict()[key].shape}, "
+            f"from loading state got shape: {state_list[i][1].shape}")
             continue
     return loading_state
-
 
 # Freeze model weights
 def set_requires_grad(model, val):
@@ -659,9 +633,7 @@ def print_model_layers(model):
         print(name, module)
 
 
-def construct_model(
-    train_kwargs, Rs, enc_pth=None, test_mode=False, fine_tune_mode=False
-):
+def construct_model(train_kwargs, Rs, enc_pth=None, test_mode=False, fine_tune_mode=False):
     # Prepare encoder - Note (for json): use "IMAGENET1K_V1" for ImageNet weights, null for None
     backbone = train_kwargs.backbone
     backbone_name = backbone.name
@@ -677,7 +649,7 @@ def construct_model(
         enc.fc = nn.Identity()
     elif "vit" in backbone_name:
         features_dim = _VIT_NUM_FEATURES[backbone_name]
-        enc.heads.head = nn.Identity()
+        enc.heads = nn.Identity()
     else:
         print("No adjusment to:", backbone_name)
 
@@ -705,9 +677,7 @@ def construct_model(
         )
         component = f"heads.{head}"
         if test_mode or fine_tune_mode:
-            heads[head] = load_model_state(
-                heads[head], enc_pth, origin=origin, component=component
-            )
+            heads[head] = load_model_state(heads[head], enc_pth, origin=origin, component=component)
 
     # Combine parameters of encoder and heads
     encoder_params = enc.parameters()
@@ -730,10 +700,7 @@ def construct_model(
     model = LinearProbe(enc, heads, optimizer, scheduler, Rs)
     return model
 
-
-def construct_one_hot_model(
-    train_kwargs, enc_pth=None, test_mode=False, fine_tune_mode=False
-):
+def construct_one_hot_model(train_kwargs, enc_pth=None, test_mode=False, fine_tune_mode=False):
     # Prepare encoder - Note (for json): use "IMAGENET1K_V1" for ImageNet weights, null for None
     # Note: dims argument should not include input_dim, that is automatically obtained
     backbone = train_kwargs.backbone
@@ -764,9 +731,7 @@ def construct_one_hot_model(
     )
     component = "classifier"
     if test_mode or fine_tune_mode:
-        classifier = load_model_state(
-            classifier, enc_pth, origin=origin, component=component
-        )
+        classifier = load_model_state(classifier, enc_pth, origin=origin, component=component)
 
     # Combine parameters of encoder and heads
     encoder_params = enc.parameters()
@@ -789,8 +754,8 @@ def construct_one_hot_model(
     model = OneHotLinearProbe(enc, classifier, optimizer, scheduler)
     return model
 
-
 # 6. One-hot relevant functions
 def process_one_hot_df(data_df, col):
     data_df[col] = data_df[col].apply(lambda x: ast.literal_eval(x)[0])
     return data_df
+
