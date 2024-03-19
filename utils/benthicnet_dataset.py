@@ -19,6 +19,7 @@ class BenthicNetDataset(torch.utils.data.Dataset):
         self,
         annotations=None,
         transform=None,
+        local=None,
     ):
         """
         Dataset for BenthicNet data.
@@ -35,6 +36,7 @@ class BenthicNetDataset(torch.utils.data.Dataset):
         self.dataframe = annotations.copy()
         self.dataframe.loc[:, "tarname"] = self.dataframe.loc[:, "dataset"] + ".tar"
         self.transform = transform
+        self.local = local
 
     def __len__(self):
         return len(self.dataframe)
@@ -50,7 +52,12 @@ class BenthicNetDataset(torch.utils.data.Dataset):
             img_name = split_img_name[0] + ".jpg"
 
         path = row["dataset"] + "/" + row["site"] + "/" + img_name
-        node_file_path = os.path.join(os.environ["SLURM_TMPDIR"], path)
+
+        if self.local:
+            node_file_path = self.local + "/" + path
+        else:
+            node_file_path = os.path.join(os.environ["SLURM_TMPDIR"], path)
+
         sample = PIL.Image.open(node_file_path)
 
         if self.transform:
@@ -72,7 +79,9 @@ class BenthicNetDataset(torch.utils.data.Dataset):
 class OneHotBenthicNetDataset(torch.utils.data.Dataset):
     """BenthicNet dataset."""
 
-    def __init__(self, annotations=None, transform=None, lab_col="CATAMI Substrate"):
+    def __init__(
+        self, annotations=None, transform=None, lab_col="CATAMI Substrate", local=None
+    ):
         """
         Dataset for BenthicNet data.
 
@@ -89,6 +98,7 @@ class OneHotBenthicNetDataset(torch.utils.data.Dataset):
         self.dataframe.loc[:, "tarname"] = self.dataframe.loc[:, "dataset"] + ".tar"
         self.transform = transform
         self.lab_col = lab_col
+        self.local = local
 
     def __len__(self):
         return len(self.dataframe)
@@ -104,7 +114,12 @@ class OneHotBenthicNetDataset(torch.utils.data.Dataset):
             img_name = split_img_name[0] + ".jpg"
 
         path = row["dataset"] + "/" + row["site"] + "/" + img_name
-        node_file_path = os.path.join(os.environ["SLURM_TMPDIR"], path)
+
+        if self.local:
+            node_file_path = self.local + "/" + path
+        else:
+            node_file_path = os.path.join(os.environ["SLURM_TMPDIR"], path)
+
         sample = PIL.Image.open(node_file_path)
 
         if self.transform:
@@ -124,7 +139,14 @@ def random_partition_df(df, val_size, test_size, seed):
 
 
 def gen_datasets(
-    df, transform, random_partition, one_hot=False, val_size=0.25, test_size=0.2, seed=0
+    df,
+    transform,
+    random_partition,
+    one_hot=False,
+    local=None,
+    val_size=0.25,
+    test_size=0.2,
+    seed=0,
 ):
     if random_partition:
         df_train, df_val, df_test = random_partition_df(
@@ -144,12 +166,18 @@ def gen_datasets(
             df_train, test_size=val_percent, random_state=seed
         )
     if one_hot:
-        train_dataset = OneHotBenthicNetDataset(df_train, transform=transform[0])
-        val_dataset = OneHotBenthicNetDataset(df_val, transform=transform[1])
-        test_dataset = OneHotBenthicNetDataset(df_test, transform=transform[1])
+        train_dataset = OneHotBenthicNetDataset(
+            df_train, transform=transform[0], local=local
+        )
+        val_dataset = OneHotBenthicNetDataset(
+            df_val, transform=transform[1], local=local
+        )
+        test_dataset = OneHotBenthicNetDataset(
+            df_test, transform=transform[1], local=local
+        )
     else:
-        train_dataset = BenthicNetDataset(df_train, transform=transform[0])
-        val_dataset = BenthicNetDataset(df_val, transform=transform[1])
-        test_dataset = BenthicNetDataset(df_test, transform=transform[1])
+        train_dataset = BenthicNetDataset(df_train, transform=transform[0], local=local)
+        val_dataset = BenthicNetDataset(df_val, transform=transform[1], local=local)
+        test_dataset = BenthicNetDataset(df_test, transform=transform[1], local=local)
 
     return train_dataset, val_dataset, test_dataset

@@ -1,11 +1,8 @@
 {
   "backbone": {
-    "name": "vit_b_16",
+    "name": "resnet50",
     "weights": null,
-    "grad": false,
-    "kwargs": {
-      "img_size": 224
-    }
+    "grad": true
   },
   "heads": {
     "biota": {
@@ -55,9 +52,9 @@
       "num_classes": 14
     }
   },
-  "max_epochs": 100,
+  "max_epochs": 400,
   "backbone_params": {
-    "patch_size": 16
+    "zero_init_residual": true
   },
   "optimizer": {
     "name": "adamw",
@@ -66,7 +63,7 @@
     "extra_optimizer_args": {
       "betas": [
         0.9,
-        0.95
+        0.999
       ]
     }
   },

@@ -78,8 +78,8 @@ def save_list_to_txt(list_data, file_path):
 
 def main():
     problem_img_paths = []
-    tar_dir = "/lustre06/project/6012565/become/benthicnet-compiled/compiled_unlabelled_512px/tar"
-    csv_path = "/lustre06/project/6012565/isaacxu/benthicnet_probes/data_csv/benthicnet_unlabelled_sub_eval.csv"
+    tar_dir = ""  # Need to add tar directory path
+    csv_path = "./data_csv/benthicnet_unlabelled_sub_eval.csv"
 
     df = get_df(csv_path)
     print("Loaded:", csv_path)
@@ -114,7 +114,7 @@ def main():
     print("\nTotal number of encountered problem images:", len(problem_img_paths))
     save_list_to_txt(
         problem_img_paths,
-        "/lustre06/project/def-ttt/isaacxu/benthicnet_probes/data_csv/unlabelled_problem_imgs.txt",
+        "./data_csv/unlabelled_problem_imgs.txt",
     )
 
 
