@@ -10,15 +10,15 @@ To use this repo, we recommend setting up a virtual Python environment and then 
 ```bash
 pip install -r requirements.txt
 ```
-Additionally, we recommend using the provided notebook "one_hot.ipynb" as a demonstration of how to prepare a model, 
+Additionally, we recommend using the provided notebook "one_hot.ipynb" as a demonstration of how to prepare a model,
 prepare dataloaders, and train the model on a one-hot classification task. This notebook may also be easily adapted
 for frozen encoders and hierarchical multi-label learning.
 
-Before running, please ensure that all paths to datasets, models, dataset CSVs, etc are correct. By default, the 
+Before running, please ensure that all paths to datasets, models, dataset CSVs, etc are correct. By default, the
 
 ## Directory Guide (In Alphabetical Order)
 1. benthicnet_norms - stats for average/standard deviation on BenthicNet imagery partitions;
-2. cfgs - contains JSON configuration files for training models of differing architecture, probes vs fine-tuning/learning, etc;' 
+2. cfgs - contains JSON configuration files for training models of differing architecture, probes vs fine-tuning/learning, etc;'
 3. graph_info - contains CSV for all BenthicNet annotations, which is used to build hierarchical graphs for HML classification;
 4. scripts - scripts prepared for use with SLURM scheduling on high performance clusters (HPCs);
 5. slurm - auxiliary scripts used for moving and extracting imagery from tarballs during HPC training/limited multi-node support; and
@@ -37,4 +37,4 @@ Before running, please ensure that all paths to datasets, models, dataset CSVs, 
    If this is not an issue, then by default, the DDP strategy in Lightning should support multi-node.
 
 ## Contact
-For any questions, concerns, or issues in using this repo, please contact [isaac.xu@dal.ca](mailto:isaac.xu@dal.ca). 
+For any questions, concerns, or issues in using this repo, please contact [isaac.xu@dal.ca](mailto:isaac.xu@dal.ca).
