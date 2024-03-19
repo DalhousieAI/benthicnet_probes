@@ -3,6 +3,7 @@ from argparse import Namespace
 from datetime import datetime
 from json import loads
 
+import torch
 from omegaconf import OmegaConf
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -23,7 +24,7 @@ from utils.utils import (
 )
 
 
-# args: train_cfg, nodes, gpus, tar_dir, csv, colour_jitter, enc,
+# args: train_cfg, nodes, gpus, local, csv, colour_jitter, enc,
 # graph_pth, seed, random_partition, name, windows
 def main():
     # Prepare argument parameters
@@ -60,7 +61,12 @@ def main():
     transform = [train_transform, val_transform]
 
     train_dataset, val_dataset, test_dataset = gen_datasets(
-        data_df, transform, args.random_partition, one_hot=False, seed=args.seed
+        data_df,
+        transform,
+        args.random_partition,
+        one_hot=False,
+        seed=args.seed,
+        local=args.local,
     )
 
     dataloaders = construct_dataloaders(
@@ -75,9 +81,9 @@ def main():
 
     # Set up callbacks
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    directory_path = os.path.join("checkpoints", timestamp)
+    directory_path = os.path.join("../checkpoints", timestamp)
 
-    csv_logger = CSVLogger("logs", name=args.name + "_logs", version=timestamp)
+    csv_logger = CSVLogger("../logs", name=args.name + "_logs", version=timestamp)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=directory_path,
@@ -103,33 +109,31 @@ def main():
 
     trainer_args = Namespace(**train_kwargs)
 
+    torch.set_float32_matmul_precision("medium")
+
     if args.test_mode:
-        del train_dataloader, val_dataloader
-        trainer = Trainer.from_argparse_args(
-            trainer_args,
+        trainer = Trainer(
+            max_epochs=trainer_args.max_epochs,
             logger=csv_logger,
             callbacks=callbacks,
-            strategy=DDPStrategy(find_unused_parameters=False),
             accelerator="cuda",
             num_nodes=1,
             devices=[0],
             log_every_n_steps=log_every_n_steps,
-            enable_progress_bar=False,
+            enable_progress_bar=True,
         )
 
         trainer.test(model, dataloaders=test_dataloader)
     else:
-        del test_dataloader
-        trainer = Trainer.from_argparse_args(
-            trainer_args,
+        trainer = Trainer(
+            max_epochs=trainer_args.max_epochs,
             logger=csv_logger,
             callbacks=callbacks,
-            strategy=DDPStrategy(find_unused_parameters=False),
             accelerator="cuda",
             num_nodes=args.nodes,
             devices=args.gpus,
             log_every_n_steps=log_every_n_steps,
-            enable_progress_bar=False,
+            enable_progress_bar=True,
         )
 
         trainer.fit(model, train_dataloader, val_dataloaders=val_dataloader)

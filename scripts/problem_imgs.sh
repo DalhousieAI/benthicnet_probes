@@ -6,7 +6,7 @@
 #SBATCH --mem=36G                   # Memory per node
 #SBATCH --output=../logs/%x_%A-%a_%n-%t.out
 #SBATCH --job-name=prob_imgs
-#SBATCH --account=def-ttt			# Use default account
+#SBATCH --account=      			# Use default account
 
 # Exit if any command hits an error
 set -e

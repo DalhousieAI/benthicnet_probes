@@ -55,14 +55,14 @@
       "num_classes": 14
     }
   },
-  "max_epochs": 100,
+  "max_epochs": 400,
   "backbone_params": {
     "patch_size": 16
   },
   "optimizer": {
     "name": "adamw",
-    "lr": 0.1,
-    "weight_decay": 0,
+    "lr": 3e-05,
+    "weight_decay": 1e-05,
     "extra_optimizer_args": {
       "betas": [
         0.9,
@@ -74,8 +74,8 @@
     "name": "warmup_cosine",
     "interval": "epoch",
     "warmup_epochs": 10,
-    "warmup_start_lr": 0.03,
-    "min_lr": 0.03
+    "warmup_start_lr": 3e-06,
+    "min_lr": 3e-06
   },
   "batch_size": 128,
   "num_workers": 12

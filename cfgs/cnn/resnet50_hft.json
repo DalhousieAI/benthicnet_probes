@@ -1,11 +1,8 @@
 {
   "backbone": {
-    "name": "vit_b_16",
+    "name": "resnet50",
     "weights": null,
-    "grad": false,
-    "kwargs": {
-      "img_size": 224
-    }
+    "grad": true
   },
   "heads": {
     "biota": {
@@ -55,18 +52,18 @@
       "num_classes": 14
     }
   },
-  "max_epochs": 100,
+  "max_epochs": 300,
   "backbone_params": {
-    "patch_size": 16
+    "zero_init_residual": true
   },
   "optimizer": {
     "name": "adamw",
-    "lr": 3e-05,
-    "weight_decay": 1e-05,
+    "lr": 3e-08,
+    "weight_decay": 0,
     "extra_optimizer_args": {
       "betas": [
         0.9,
-        0.95
+        0.999
       ]
     }
   },
@@ -74,8 +71,8 @@
     "name": "warmup_cosine",
     "interval": "epoch",
     "warmup_epochs": 10,
-    "warmup_start_lr": 3e-06,
-    "min_lr": 3e-06
+    "warmup_start_lr": 3e-09,
+    "min_lr": 3e-09
   },
   "batch_size": 128,
   "num_workers": 12

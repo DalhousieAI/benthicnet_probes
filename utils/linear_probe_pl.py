@@ -292,7 +292,7 @@ class LinearProbe(pl.LightningModule):
         self.log("test_loss", test_epoch_loss, sync_dist=True)
         drop_keys_with_string(self.epoch_metrics_dict, "test")
 
-    def predict_head_step(self, batch, head="biota", random_out=False):
+    def predict_step(self, batch, head="biota", random_out=False):
         inputs, data = batch
 
         # Data for relevant head

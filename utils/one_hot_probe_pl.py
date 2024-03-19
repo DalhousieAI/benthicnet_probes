@@ -107,3 +107,15 @@ class OneHotLinearProbe(pl.LightningModule):
     def on_test_epoch_end(self):
         test_epoch_loss = self.shared_epoch_end("test")
         self.log("test_loss", test_epoch_loss, sync_dist=True)
+
+    def predict_step(self, batch):
+        self.encoder.eval()
+        self.classifier.eval()
+
+        inputs, tgts = batch
+
+        # Predictions
+        classifier_outs = self(inputs)
+        predictions = torch.max(classifier_outs, dim=1)[1]
+
+        return predictions, tgts

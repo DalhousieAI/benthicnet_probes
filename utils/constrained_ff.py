@@ -1,5 +1,6 @@
-# Modified from Coherent Hierarchical Multi-Label Classification Networks (https://github.com/EGiunchiglia/C-HMCNN)
-# Under GPL-3.0 License
+# Constrained Feed-Forward Neural Network for HML
+# (from Coherent Hierarchical Multi-Label Classification Networks - GPL-3.0 License)
+# https://github.com/EGiunchiglia/C-HMCNN
 
 import torch
 import torch.nn as nn

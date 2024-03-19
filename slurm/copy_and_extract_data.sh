@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source_dir="/lustre06/project/def-ttt/become/benthicnet-compiled/compiled_labelled_512px/tar"
+source_dir=""
 destination_dir="$SLURM_TMPDIR"
 
 start_time=$(date +%s.%N)

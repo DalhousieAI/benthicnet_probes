@@ -12,12 +12,11 @@ import torchvision.transforms as transforms
 from networkx import relabel_nodes
 from omegaconf import OmegaConf
 from PIL import Image
-from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from torch.optim.lr_scheduler import (
     ExponentialLR,
     MultiStepLR,
+    OneCycleLR,
     ReduceLROnPlateau,
-    StepLR,
 )
 
 from utils.benthicnet.io import read_csv
@@ -97,10 +96,10 @@ def parser():
 
     # Other parameters
     parser.add_argument(
-        "--tar_dir",
+        "--local",
         type=str,
-        default="/gpfs/project/6012565/become_labelled/compiled_labelled_512px/tar",
-        help="set directory for training tar file",
+        default=None,
+        help="set directory for training images",
     )
     parser.add_argument(
         "--csv",
@@ -148,6 +147,8 @@ def parser():
     parser.add_argument(
         "--name", type=str, default="benthicnet_hl", help="set name for the run"
     )
+    # Currently seems ot hang when using bat script on windows
+    # Recommend interactive mode (notebook) if using windows
     parser.add_argument(
         "--windows",
         type=bool,
@@ -176,16 +177,15 @@ def one_hot_parser():
 
     # Other parameters
     parser.add_argument(
-        "--tar_dir",
+        "--local",
         type=str,
-        default="/gpfs/project/6012565/become_labelled/compiled_labelled_512px/tar",
-        help="set directory for training tar file",
+        default=None,
+        help="set directory for training images",
     )
     parser.add_argument(
         "--csv",
         type=str,
-        default="/lustre06/project/6012565/isaacxu/benthicnet_probes/data_csv/ \
-            one_hots/substrate_depth_2_data/substrate_depth_2_data.csv",
+        default="../data_csv/one_hots/substrate_depth_2_data/substrate_depth_2_data.csv",
         help="set path for data csv",
     )
     parser.add_argument(
@@ -222,6 +222,8 @@ def one_hot_parser():
     parser.add_argument(
         "--name", type=str, default="benthicnet_one_hot", help="set name for the run"
     )
+    # Currently seems ot hang when using bat script on windows
+    # Recommend interactive mode (notebook) if using windows
     parser.add_argument(
         "--windows",
         type=bool,
@@ -250,9 +252,9 @@ def set_seed(seed, performance_mode=True):
 
 
 # 2. Graph related functions
-# Generating ancestor matrix
-# Modified from Coherent Hierarchical Multi-Label Classification Networks (https://github.com/EGiunchiglia/C-HMCNN)
-# Under GPL-3.0 License
+# Generating ancestor/descendent matrix
+# (from Coherent Hierarchical Multi-Label Classification Networks - GPL-3.0 License)
+# https://github.com/EGiunchiglia/C-HMCNN
 def gen_R_mat(G):
     n_nodes = G.number_of_nodes()
     R = np.zeros((n_nodes, n_nodes))
@@ -380,7 +382,7 @@ def gen_root_graphs(nodes_f):
 
 
 # 3. Augmentation related functions
-# Values take (from FastAutoAug - MIT license)
+# (from FastAutoAug - MIT license)
 # https://github.com/kakaobrain/fast-autoaugment
 _IMAGENET_PCA = {
     "eigval": [0.2175, 0.0188, 0.0045],
@@ -443,6 +445,7 @@ def get_augs(colour_jitter: bool, input_size=224, size_size=256, use_benthicnet=
                 transforms.Resize(
                     (input_size, input_size), interpolation=Image.BICUBIC
                 ),
+                # Crop settings may be too aggresive for biota
                 transforms.RandomResizedCrop(
                     input_size, scale=(0.1, 1.0), interpolation=Image.BICUBIC
                 ),
@@ -488,6 +491,7 @@ def construct_dataloaders(datasets, train_kwargs):
                 dataset,
                 batch_size=train_kwargs.batch_size,
                 num_workers=train_kwargs.num_workers,
+                persistent_workers=True,
                 drop_last=True,
                 shuffle=True,
                 pin_memory=True,
@@ -497,16 +501,17 @@ def construct_dataloaders(datasets, train_kwargs):
             evaluation_loader = torch.utils.data.DataLoader(
                 dataset,
                 batch_size=train_kwargs.batch_size,
+                num_workers=train_kwargs.num_workers,
+                persistent_workers=True,
                 shuffle=False,
                 pin_memory=True,
-                num_workers=train_kwargs.num_workers,
             )
             data_loader_list.append(evaluation_loader)
     return data_loader_list
 
 
 # 5. Building the model
-def load_model_state(model, ckpt_path, origin=None, component="encoder"):
+def load_model_state(model, ckpt_path, origin="", component="encoder", verbose=0):
     # key = 'state_dict' for pre-trained models, 'model' for FB Imagenet
     alt_component_names = {
         "encoder": "backbone",
@@ -524,8 +529,13 @@ def load_model_state(model, ckpt_path, origin=None, component="encoder"):
     loading_state = {}
     model_keys = model.state_dict().keys()
 
-    if any(s in ckpt_path for s in ("mocov3", "mae", "vit")):
-        loading_state = get_vit_state(model, state, model_keys, loading_state)
+    if any(s in ckpt_path for s in ("mocov3", "mae", "vit")) and component == "encoder":
+        if any(s in ckpt_path for s in ("hp", "hl", "hft")):
+            loading_state = get_vit_state(
+                model, state, model_keys, loading_state, reorder_pos_emb=False
+            )
+        else:
+            loading_state = get_vit_state(model, state, model_keys, loading_state)
     else:
         for k in list(state.keys()):
             k_split = k.split(".")
@@ -545,12 +555,14 @@ def load_model_state(model, ckpt_path, origin=None, component="encoder"):
 
             if k_to_check in model_keys:
                 loading_state[k_to_check] = state[k]
-    print(
-        f"Loading {len(loading_state.keys())} layers for {component}"
-        " Expected layers (approx):\n\tViT base: 150\n\tViT Large: 294\n\tResNet-50: 320"
-    )
+    if verbose > 0:
+        print(
+            f"Loading {len(loading_state.keys())} layers for {component}\n"
+            " Expected layers (approx):\n\tViT-Base: 150\n\tViT-Large: 294\n\tResNet-50: 320"
+        )
     model.load_state_dict(loading_state, strict=False)
-    print(f"Loaded {component} from {ckpt_path}.")
+    if verbose > 0:
+        print(f"Loaded {component} from {ckpt_path}.")
 
     return model
 
@@ -614,14 +626,17 @@ def process_scheduler(train_kwargs, optimizer, lr):
         )
     else:
         if scheduler_name == "warmup_cosine":
-            scheduler = LinearWarmupCosineAnnealingLR(
+            scheduler = OneCycleLR(
                 optimizer,
-                warmup_epochs=train_kwargs.scheduler.warmup_epochs,
-                max_epochs=train_kwargs.max_epochs,
-                warmup_start_lr=train_kwargs.scheduler.warmup_start_lr
+                pct_start=train_kwargs.scheduler.warmup_epochs
+                / train_kwargs.max_epochs,
+                epochs=train_kwargs.max_epochs,
+                steps_per_epoch=train_kwargs.batch_size,
+                max_lr=lr,
+                div_factor=lr / train_kwargs.scheduler.warmup_start_lr
                 if train_kwargs.scheduler.warmup_epochs > 0
                 else lr,
-                eta_min=train_kwargs.scheduler.min_lr,
+                final_div_factor=lr / train_kwargs.scheduler.min_lr,
             )
         elif scheduler_name == "reduce":
             scheduler = ReduceLROnPlateau(
@@ -665,6 +680,7 @@ def construct_model(
     # Prepare encoder - Note (for json): use "IMAGENET1K_V1" for ImageNet weights, null for None
     backbone = train_kwargs.backbone
     backbone_name = backbone.name
+    origin = ""
     enc = _BACKBONES[backbone_name](weights=backbone.weights)
     if enc_pth:
         origin = omegaconf_select(train_kwargs, "backbone.origin")
@@ -739,6 +755,7 @@ def construct_one_hot_model(
     backbone = train_kwargs.backbone
     backbone_name = backbone.name
     enc = _BACKBONES[backbone_name](weights=backbone.weights)
+    origin = ""
     if enc_pth:
         origin = omegaconf_select(train_kwargs, "backbone.origin")
         enc = load_model_state(enc, enc_pth, origin=origin)
@@ -792,5 +809,6 @@ def construct_one_hot_model(
 
 # 6. One-hot relevant functions
 def process_one_hot_df(data_df, col):
-    data_df[col] = data_df[col].apply(lambda x: ast.literal_eval(x)[0])
-    return data_df
+    temp_data_df = data_df.copy()
+    temp_data_df[col] = temp_data_df[col].apply(lambda x: ast.literal_eval(x)[0])
+    return temp_data_df
