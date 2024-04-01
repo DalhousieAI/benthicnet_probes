@@ -6,7 +6,7 @@ The code here may be used for hierarchical multi-label (HML) learning or for one
 This framework also provides support for testing on frozen (non-trainable) encoders or for fine-tuning/unfrozen encoders.
 
 To demonstrate the use of the code presented to load and train a model (pre-trained self-supervised on BenthicNet, supervised on ImageNet, or any other of supported architectures) in a typical one-hot multi-class classification task, we supply a tutorial notebook "one_hot.ipynb".
-The code in this notebook also reflects the main_one_hot.py Python script.
+The code in this notebook also reflects the main_one_hot.py Python script and can be with some minor alterations be modified to work in a hierarchical multi-label setting.
 
 ## Getting Started
 To use this repo, we recommend setting up a virtual Python environment and then installing the packages listed in requirements.txt.
