@@ -28,7 +28,7 @@ Before running, please ensure that all paths to datasets, models, dataset CSVs, 
 1. check_for_problem_imgs.py - a Python script for checking if there are any issues with accessing required images based on the dataset CSV;
 2. main.py - main Python code which is called when running hierarchical training tasks;
 3. main_one_hot.py - main Python code called when running one-hot multi-class classification tasks;
-4. one_hot.ipynb - a demonstration notebook showcasing parameters, the parts of configuration files, and how main_one_hot.py functions;
+4. one_hot.ipynb - a demonstration notebook showcasing parameters, the parts of configuration files, and how to load and train a model in a one hot multi-label classification setting;
 5. test_depth.ipynb - a notebook used for calculating evaluation metrics on test data (may require seaborn package as well); and
 6. test_depth_group.ipynb - adaptation of test_depth.ipynb to facilitate testing multiple models at once.
 
