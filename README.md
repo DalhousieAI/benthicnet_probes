@@ -5,7 +5,7 @@ The purpose of this repo is to provide code and support for working with Benthic
 The code here may be used for hierarchical multi-label (HML) learning or for one-hot multi-class tasks.
 This framework also provides support for testing on frozen (non-trainable) encoders or for fine-tuning/unfrozen encoders.
 
-To demonstrate the use of the code presented to load and train a model in a typical one-hot multi-class classification task, we supply a tutorial notebook "one_hot.ipynb".
+To demonstrate the use of the code presented to load and train a model (pre-trained self-supervised on BenthicNet, supervised on ImageNet, or any other) in a typical one-hot multi-class classification task, we supply a tutorial notebook "one_hot.ipynb".
 The code in this notebook also reflects the main_one_hot.py Python script.
 
 ## Getting Started
