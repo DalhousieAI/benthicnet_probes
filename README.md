@@ -5,6 +5,9 @@ The purpose of this repo is to provide code and support for working with Benthic
 The code here may be used for hierarchical multi-label (HML) learning or for one-hot multi-class tasks.
 This framework also provides support for testing on frozen (non-trainable) encoders or for fine-tuning/unfrozen encoders.
 
+To demonstrate the use of the code presented to load and train a model in a typical one-hot multi-class classification task, we supply a tutorial notebook "one_hot.ipynb".
+The code in this notebook also reflects the main_one_hot.py Python script.
+
 ## Getting Started
 To use this repo, we recommend setting up a virtual Python environment and then installing the packages listed in requirements.txt.
 ```bash
@@ -14,7 +17,7 @@ Additionally, we recommend using the provided notebook "one_hot.ipynb" as a demo
 prepare dataloaders, and train the model on a one-hot classification task. This notebook may also be easily adapted
 for frozen encoders and hierarchical multi-label learning.
 
-Before running, please ensure that all paths to datasets, models, dataset CSVs, etc are correct. By default, the
+Before running, please ensure that all paths to datasets, models, dataset CSVs, etc are correct.
 
 ## Directory Guide (In Alphabetical Order)
 1. benthicnet_norms - stats for average/standard deviation on BenthicNet imagery partitions;
