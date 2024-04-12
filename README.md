@@ -37,7 +37,7 @@ Before running, please ensure that all paths to datasets, models, dataset CSVs, 
 6. test_depth_group.ipynb - adaptation of test_depth.ipynb to facilitate testing multiple models at once.
 
 ## Known Issues
-1. Multi-node training is currently not fully supported. Specifically, the copy and extract to move data to each node is not implemented.
+1. Multi-node training is currently not fully supported. Specifically, the copy and extract shell script to move data to each node is not implemented.
    If this is not an issue, then by default, the DDP strategy in Lightning should support multi-node.
 
 ## Contact
