@@ -26,6 +26,7 @@ Before running, please ensure that all paths to datasets, models, dataset CSVs, 
 4. scripts - scripts prepared for use with SLURM scheduling on high performance clusters (HPCs);
 5. slurm - auxiliary scripts used for moving and extracting imagery from tarballs during HPC training/limited multi-node support; and
 6. utils - contains auxiliary code and inner workings for running the required learning tasks.
+7. ap_score-to_threshold_or_not.pdf - exerpt discussing the implications of thresholded outputs vs using sigmoid outputs for calculating average precision score.
 
 ## Main Directory Python Files
 1. check_for_problem_imgs.py - a Python script for checking if there are any issues with accessing required images based on the dataset CSV;
