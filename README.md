@@ -36,6 +36,18 @@ Before running, please ensure that all paths to datasets, models, dataset CSVs, 
 5. test_depth.ipynb - a notebook used for calculating evaluation metrics on test data (may require seaborn package as well); and
 6. test_depth_group.ipynb - adaptation of test_depth.ipynb to facilitate testing multiple models at once.
 
+## Information on Loading Models
+By default, if a path for an encoder checkpoint (file containing model weights) is provided, 
+the [model construction functions](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L483) will automatically
+get the weights from the checkpoint and attempt to load them via the ["load_model_state" function](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L514).
+If no path is provided, the model construction randomly initializes weights.
+
+In the tutorial notebook, the contruction function is called with the path provided as an argument and details on how the model is loaded may not be a concern.
+However, while attempts have been made to ensure the state loading function is flexible, there are ultimately a limited number of cases that can be considered.
+Most notably, the function assumes that the key to accessing the state dictionary is either "state_dict" or in the case of models from Facebook AI, "model".
+Additionally, the key within the state dictionary indicating the encoder weights is assumed to be either "encoder" or "backbone".
+If the keys for the state dictionary or the encoder do not fall under our assumptions, some minor editing of the "load_model_state" function may be required.
+
 ## Known Issues
 1. Multi-node training is currently not fully supported. Specifically, the copy and extract shell script to move data to each node is not implemented.
    If this is not an issue, then by default, the DDP strategy in Lightning should support multi-node computation.
