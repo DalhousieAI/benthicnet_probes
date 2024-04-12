@@ -38,7 +38,7 @@ Before running, please ensure that all paths to datasets, models, dataset CSVs, 
 
 ## Known Issues
 1. Multi-node training is currently not fully supported. Specifically, the copy and extract shell script to move data to each node is not implemented.
-   If this is not an issue, then by default, the DDP strategy in Lightning should support multi-node.
+   If this is not an issue, then by default, the DDP strategy in Lightning should support multi-node computation.
 
 ## Contact
 For any questions, concerns, or issues in using this repo, please contact [isaac.xu@dal.ca](mailto:isaac.xu@dal.ca).
