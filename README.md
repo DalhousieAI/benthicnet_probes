@@ -38,7 +38,7 @@ Before running, please ensure that all paths to datasets, models, dataset CSVs, 
 
 ## Information on Loading Models
 By default, if a path for an encoder checkpoint (file containing model weights) is provided, 
-the [model construction functions](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L677) (or its [one hot variant](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L750)) will automatically
+the [model construction function](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L677) (or its [one hot variant](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L750)) will automatically
 get the weights from the checkpoint and attempt to load them via the ["load_model_state" function](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L514).
 If no path is provided, the model construction randomly initializes weights.
 
