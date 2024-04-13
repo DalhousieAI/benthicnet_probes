@@ -44,7 +44,7 @@ If no path is provided, the model construction randomly initializes weights.
 
 In the tutorial notebook, the contruction function is called with the path provided as an argument and details on how the model is loaded may not be a concern.
 However, while attempts have been made to ensure the state loading function is flexible, there are ultimately a limited number of cases that can be considered.
-Most notably, the function assumes that the key to accessing the state dictionary is either "state_dict" or in the case of models from Facebook AI, "model".
+Most notably, the function assumes that the key to accessing the state dictionary is either "state_dict" (for our provided models) or in the case of models from Facebook/Meta AI, "model".
 Additionally, the key within the state dictionary indicating the encoder weights is assumed to be either "encoder" or "backbone".
 If the keys for the state dictionary or the encoder do not fall under our assumptions, some minor editing of the "load_model_state" function may be required.
 
