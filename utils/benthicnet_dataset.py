@@ -9,8 +9,6 @@ import PIL.Image
 import torch.utils.data
 from sklearn.model_selection import train_test_split
 
-from utils.benthicnet.io import row2basename
-
 
 class BenthicNetDataset(torch.utils.data.Dataset):
     """BenthicNet dataset."""
@@ -44,12 +42,7 @@ class BenthicNetDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         row = self.dataframe.iloc[idx]
 
-        split_img_name = row2basename(row, use_url_extension=True).split(".")
-
-        if len(split_img_name) > 1:
-            img_name = ".".join(split_img_name[:-1]) + ".jpg"
-        else:
-            img_name = split_img_name[0] + ".jpg"
+        img_name = row["image"] + ".jpg"
 
         path = row["dataset"] + "/" + row["site"] + "/" + img_name
 
@@ -106,12 +99,7 @@ class OneHotBenthicNetDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         row = self.dataframe.iloc[idx]
 
-        split_img_name = row2basename(row, use_url_extension=True).split(".")
-
-        if len(split_img_name) > 1:
-            img_name = ".".join(split_img_name[:-1]) + ".jpg"
-        else:
-            img_name = split_img_name[0] + ".jpg"
+        img_name = row["image"] + ".jpg"
 
         path = row["dataset"] + "/" + row["site"] + "/" + img_name
 
