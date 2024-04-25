@@ -37,7 +37,7 @@ Before running, please ensure that all paths to datasets, models, dataset CSVs, 
 6. test_depth_group.ipynb - adaptation of test_depth.ipynb to facilitate testing multiple models at once.
 
 ## Information on Loading Models
-By default, if a path for an encoder checkpoint (file containing model weights) is provided, 
+By default, if a path for an encoder checkpoint (file containing model weights) is provided,
 the [model construction function](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L677) (or its [one hot variant](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L750)) will automatically
 get the weights from the checkpoint and attempt to load them via the ["load_model_state" function](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L514).
 If no path is provided, the model construction randomly initializes weights.
