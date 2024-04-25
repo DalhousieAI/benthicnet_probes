@@ -147,7 +147,9 @@ def gen_datasets(
         # To ensure 60% of data is in training
         # Here, test_size is expected test size,
         # which may have been violated by geo-spatial partitioning
+        # Exact
         # val_percent = (0.4 - len(df_test) / len(df)) / (1 - len(df_test) / len(df))
+        # Approximate
         val_percent = (0.4 - len(df_test) / len(df)) / (1 - test_size)
 
         assert val_percent > 0, "Test size is too large for the given dataset."
