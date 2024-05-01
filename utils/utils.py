@@ -27,27 +27,27 @@ from utils.one_hot_probe_pl import OneHotLinearProbe
 
 # 1. Definitions
 _SAMPLE_HEADERS = [
-    "CATAMI Biota",
-    "CATAMI Substrate",
-    "CATAMI Relief",
-    "CATAMI Bedforms",
-    "Colour-qualifier",
-    "Biota Mask",
-    "Substrate Mask",
-    "Relief Mask",
-    "Bedforms Mask",
+    "catami_biota",
+    "catami_substrate",
+    "catami_relief",
+    "catami_bedforms",
+    "colour_qualifier",
+    "biota_mask",
+    "substrate_mask",
+    "relief_mask",
+    "bedforms_mask",
 ]
 
 _HEADER_ROOT_DICT = {
-    "CATAMI Biota": "biota",
-    "CATAMI Substrate": "substrate",
-    "CATAMI Relief": "relief",
-    "CATAMI Bedforms": "bedforms",
-    "Colour-qualifier": "colour",
-    "Biota Mask": "biota_mask",
-    "Substrate Mask": "substrate_mask",
-    "Relief Mask": "relief_mask",
-    "Bedforms Mask": "bedforms_mask",
+    "catami_biota": "biota",
+    "catami_substrate": "substrate",
+    "catami_relief": "relief",
+    "catami_bedforms": "bedforms",
+    "colour_qualifier": "colour",
+    "biota_mask": "biota_mask",
+    "substrate_mask": "substrate_mask",
+    "relief_mask": "relief_mask",
+    "bedforms_mask": "bedforms_mask",
 }
 
 _OPTIMIZERS = {
@@ -316,7 +316,7 @@ def parse_heads_and_masks(sample_row, Rs):
         non_hierarchical_head = isinstance(Rs[root], int)
         if isinstance(raw_indices, str) and len(raw_indices) > 0:
             indices = np.array(ast.literal_eval(raw_indices))
-            if "Mask" in header:
+            if "_mask" in header:
                 lab_array = torch.ones(len(Rs[root][0]))
                 lab_array[indices] = 0
             else:
@@ -344,7 +344,7 @@ def process_data_df(data_df, Rs):
 
 def process_nodes(nodes_df):
     root_dict = {"root": [], "child": [], "parent": []}
-    nodes = nodes_df["CATAMI"]
+    nodes = nodes_df["catami"]
     nodes.apply(process_node, args=(root_dict,))
 
     parent_df = pd.DataFrame.from_dict(root_dict)

@@ -57,15 +57,15 @@ class BenthicNetDataset(torch.utils.data.Dataset):
             sample = self.transform(sample)
 
         return sample, (
-            row["CATAMI Biota"],
-            row["CATAMI Substrate"],
-            row["CATAMI Relief"],
-            row["CATAMI Bedforms"],
-            row["Colour-qualifier"],
-            row["Biota Mask"],
-            row["Substrate Mask"],
-            row["Relief Mask"],
-            row["Bedforms Mask"],
+            row["catami_biota"],
+            row["catami_substrate"],
+            row["catami_relief"],
+            row["catami_bedforms"],
+            row["colour_qualifier"],
+            row["biota_mask"],
+            row["substrate_mask"],
+            row["relief_mask"],
+            row["bedforms_mask"],
         )
 
 
@@ -73,7 +73,7 @@ class OneHotBenthicNetDataset(torch.utils.data.Dataset):
     """BenthicNet dataset."""
 
     def __init__(
-        self, annotations=None, transform=None, lab_col="CATAMI Substrate", local=None
+        self, annotations=None, transform=None, lab_col="catami_substrate", local=None
     ):
         """
         Dataset for BenthicNet data.
@@ -132,6 +132,7 @@ def gen_datasets(
     random_partition,
     one_hot=False,
     local=None,
+    lab_col="catami_substrate",
     val_size=0.25,
     test_size=0.2,
     seed=0,
@@ -158,13 +159,13 @@ def gen_datasets(
         )
     if one_hot:
         train_dataset = OneHotBenthicNetDataset(
-            df_train, transform=transform[0], local=local
+            df_train, transform=transform[0], local=local, lab_col=lab_col
         )
         val_dataset = OneHotBenthicNetDataset(
-            df_val, transform=transform[1], local=local
+            df_val, transform=transform[1], local=local, lab_col=lab_col
         )
         test_dataset = OneHotBenthicNetDataset(
-            df_test, transform=transform[1], local=local
+            df_test, transform=transform[1], local=local, lab_col=lab_col
         )
     else:
         train_dataset = BenthicNetDataset(df_train, transform=transform[0], local=local)
