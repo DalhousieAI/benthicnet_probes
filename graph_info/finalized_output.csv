@@ -53,7 +53,7 @@ catami,aphia_id
 [BIOTA] > Biota > Cnidaria > Corals > Black & Octocorals > Branching (3D) > Non-fleshy > Bushy,1292
 [BIOTA] > Biota > Cnidaria > Corals > Black & Octocorals > Encrusting,1292
 [BIOTA] > Biota > Cnidaria > Corals > Black & Octocorals > Encrusting > Lobate,1292
-[BIOTA] > Biota > Cnidaria > Corals > Black & Octocorals > Encrusting > Ridged/Folded,1292
+[BIOTA] > Biota > Cnidaria > Corals > Black & Octocorals > Encrusting > Ridged / Folded,1292
 [BIOTA] > Biota > Cnidaria > Corals > Black & Octocorals > Fan (2D),1292
 [BIOTA] > Biota > Cnidaria > Corals > Black & Octocorals > Fan (2D) > Fern-frond,1292
 [BIOTA] > Biota > Cnidaria > Corals > Black & Octocorals > Fan (2D) > Fern-frond > Complex,1292
@@ -93,8 +93,8 @@ catami,aphia_id
 [BIOTA] > Biota > Cnidaria > Tube anemones,1292
 [BIOTA] > Biota > Crustacea,1066
 [BIOTA] > Biota > Crustacea > Barnacles,1082
-[BIOTA] > Biota > Crustacea > Barnacles > Acorn,
-[BIOTA] > Biota > Crustacea > Barnacles > Stalked,
+[BIOTA] > Biota > Crustacea > Barnacles > Acorn,1082
+[BIOTA] > Biota > Crustacea > Barnacles > Stalked,1082
 [BIOTA] > Biota > Crustacea > Crabs,106670
 [BIOTA] > Biota > Crustacea > Crabs > King crabs,106737
 [BIOTA] > Biota > Crustacea > Crabs > True crabs,106673
@@ -111,7 +111,7 @@ catami,aphia_id
 [BIOTA] > Biota > Crustacea > Prawns / shrimps / mysids > Shrimps,106674
 [BIOTA] > Biota > Echinoderms,1806
 [BIOTA] > Biota > Echinoderms > Feather stars,123081
-[BIOTA] > Biota > Echinoderms > Feather stars > Stalked crinoids,
+[BIOTA] > Biota > Echinoderms > Feather stars > Stalked crinoids,123081
 [BIOTA] > Biota > Echinoderms > Feather stars > Unstalked crinoids,123081
 [BIOTA] > Biota > Echinoderms > Ophiuroids,123084
 [BIOTA] > Biota > Echinoderms > Ophiuroids > Basket stars,242196
@@ -287,7 +287,7 @@ catami,aphia_id
 [BIOTA] > Biota > Worms > Penisworms,101063
 [BIOTA] > Biota > Worms > Polychaetes,883
 [BIOTA] > Biota > Worms > Polychaetes > Tube worms,883
-[BIOTA] > Biota > Worms > Polychaetes > Other polychaetes,
+[BIOTA] > Biota > Worms > Polychaetes > Other polychaetes,883
 [SUBSTRATE] > Substrate,
 [SUBSTRATE] > Substrate > Consolidated (hard),
 [SUBSTRATE] > Substrate > Consolidated (hard) > Boulders,
