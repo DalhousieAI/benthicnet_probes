@@ -7,7 +7,7 @@
       "img_size": 224
     }
   },
-  "column": "CATAMI Substrate",
+  "column": "catami_substrate",
   "max_epochs": 300,
   "dims": [],
   "dropout": 0.7,

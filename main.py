@@ -49,7 +49,9 @@ def main():
     Rs = {root: gen_R_mat(graph) for root, graph in root_graphs.items()}
 
     # Build model
-    model = construct_model(train_kwargs, Rs, args.enc_pth, args.test_mode)
+    model = construct_model(
+        train_kwargs, Rs, args.enc_pth, args.test_mode, args.fine_tune
+    )
 
     # Set up data
     data_df = get_df(args.csv)
