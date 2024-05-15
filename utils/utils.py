@@ -128,7 +128,7 @@ def parser():
     parser.add_argument(
         "--graph_pth",
         type=str,
-        default="../graph_info/finalized_output.csv",
+        default="../graph_info/catami_ex.csv",
         help="set path for csv to generate output graph structures",
     )
     parser.add_argument("--seed", type=int, default=0, help="random seed (default: 0)")
