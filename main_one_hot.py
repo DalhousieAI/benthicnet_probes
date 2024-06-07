@@ -58,6 +58,7 @@ def main():
         one_hot=True,
         seed=args.seed,
         local=args.local,
+        lab_col=train_kwargs.column,
     )
 
     dataloaders = construct_dataloaders(
