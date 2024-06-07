@@ -4,17 +4,17 @@ import networkx as nx
 import numpy as np
 
 _HEAD_TO_COLUMN_MAP = {
-    "biota": "CATAMI Biota",
-    "substrate": "CATAMI Substrate",
-    "relief": "CATAMI Relief",
-    "bedforms": "CATAMI Bedforms",
+    "biota": "catami_biota",
+    "substrate": "catami_substrate",
+    "relief": "catami_relief",
+    "bedforms": "catami_bedforms",
 }
 
 _HEAD_TO_MASK_MAP = {
-    "biota": "Biota Mask",
-    "substrate": "Substrate Mask",
-    "relief": "Relief Mask",
-    "bedforms": "Bedforms Mask",
+    "biota": "biota_mask",
+    "substrate": "substrate_mask",
+    "relief": "relief_mask",
+    "bedforms": "bedforms_mask",
 }
 
 
