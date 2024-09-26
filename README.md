@@ -37,7 +37,7 @@ Before running, please ensure that all paths to datasets, models, dataset CSVs, 
 6. test_depth_group.ipynb - adaptation of test_depth.ipynb to facilitate testing multiple models at once.
 
 ## Information on Loading Models
-Note: Our models are available on FRDR and [HuggingFace](https://huggingface.co/collections/MLIsaac/benthicnet-pre-trained-models-66f57c6f2f30a80c23832069)
+Note: Our models are available on FRDR and [HuggingFace](https://huggingface.co/collections/MLIsaac/benthicnet-pre-trained-models-66f57c6f2f30a80c23832069).
 
 By default, if a path for an encoder checkpoint (file containing model weights) is provided,
 the [model construction function](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L677) (or its [one hot variant](https://github.com/DalhousieAI/benthicnet_probes/blob/master/utils/utils.py#L750)) will automatically
